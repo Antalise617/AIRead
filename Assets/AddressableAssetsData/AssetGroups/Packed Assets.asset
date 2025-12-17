@@ -1,0 +1,186 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bbb281ee3bf0b054c82ac2347e9e782c, type: 3}
+  m_Name: Packed Assets
+  m_EditorClassIdentifier: 
+  m_GroupName: Packed Assets
+  m_Data:
+    m_SerializedData: []
+  m_GUID: 33312e7ee8c7d3a4a9f77a10df97c1a7
+  m_SerializeEntries:
+  - m_GUID: 034934b910676d945b211bf8e085f98f
+    m_Address: building_200002
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 056f200c3a24ac84e90446da712a13d0
+    m_Address: island_100001
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 187caeb518629c140a6d380bb668e17e
+    m_Address: bridge_300003
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 1a2c51d475467854cba971da77534515
+    m_Address: building_200007
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 20e13a5c25acedb45b3b6ea288f386be
+    m_Address: island_100004
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 2ad426a33d1dd4444afd3f0c8b3fdc5b
+    m_Address: Assets/Prefabs/Widget/IslandWidget.prefab
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 2d2e1d4ca7db3f543b94beab52a37b5a
+    m_Address: bridge_300004
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 31953a051fde8484dad829aaff1274b2
+    m_Address: GuidePanel
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 390a911407e4b444bb073d04e4542527
+    m_Address: building_200001
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 3f0d62f3967363c40aaa0d1b57c1d721
+    m_Address: Assets/Prefabs/Widget/IslandLittleProgressBarWidget.prefab
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 44606e7280adf7f47a2a0ede882dd36a
+    m_Address: building_200006
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 5279bdf0032e3694eadd0b9f80578c42
+    m_Address: Assets/Prefabs/Widget/ConstructIslandWidget.prefab
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 54bee8bceddbf2143b5150cda3a3c4a2
+    m_Address: bridge_300002
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 5af250acdbf386e40993ca34dc3f343b
+    m_Address: building_200003
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 5f9825b8640f0b2479ea857dddbc91d5
+    m_Address: Tourist
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 615abc76912a84344bc7acc0431ea382
+    m_Address: Assets/Resources_moved/GridCell.prefab
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 63124ace0e9bd4f4ea69d7c95ded5b32
+    m_Address: bridge_300005
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 6584c53e38fd6b24aa0f0c95741f909e
+    m_Address: building_200004
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 6d334c05baf0b71499ef2ad8fe421b54
+    m_Address: Assets/Prefabs/Widget/IslandProgressBarWidget.prefab
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 70334a9ffc5d28c4195ed12c36cf2ae1
+    m_Address: MainPanel
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 8dcc4cb2f14c3854a8a2e53767a58d7a
+    m_Address: island_100005
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 90ed07d2efe708f42871e8af9f1dc036
+    m_Address: TaskPanel
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 9177299a3b5e4ef46bce65e2fff95573
+    m_Address: bridge_300001
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 953284eccc1bae140a3e3d0650c696fa
+    m_Address: ConstructPanel
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: aa3386a1f1e597c43960b04fb07b1615
+    m_Address: Assets/Prefabs/Widget/ClickBuildingWidget.prefab
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: b17e2b2c000f5ce408d7b9e87dbf6f50
+    m_Address: Assets/Prefabs/UICanvas.prefab
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - UICanvas
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: ba7fffb9e78deba49b2e9ca6cb2f9cd0
+    m_Address: Assets/Prefabs/Widget/ChoiceIslandOrBuildingWidget.prefab
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: ce094bccd2841954eb48b9167a712f2a
+    m_Address: island_100003
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: cf2a8c2be4fba2b419d73f6ee270dd66
+    m_Address: building_200008
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: eb2a4f9116e1f08458949a47cca8e890
+    m_Address: building_200005
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: ecfaaca26b6b6174ca47223df6af6564
+    m_Address: island_100002
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: ef80f1a3c6e2151429c4567bbbcb7aa4
+    m_Address: Assets/Prefabs/Widget/ClickIslandWidget.prefab
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  m_ReadOnly: 0
+  m_Settings: {fileID: 11400000, guid: cc15f4d430e097c4f80e72e0071bd0a4, type: 2}
+  m_SchemaSet:
+    m_Schemas:
+    - {fileID: 11400000, guid: 7b8013313d8b14643899856e5dc85ab0, type: 2}
+    - {fileID: 11400000, guid: 3f03138b11f012a4997cb10611bab404, type: 2}
