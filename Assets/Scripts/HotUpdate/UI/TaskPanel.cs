@@ -1,10 +1,19 @@
+using GameFramework.Managers;
 using GameFramework.UI;
+using GameFramework.Core;
 using GameFramework.Events;
 using TMPro;
 using UnityEngine;
-using HotUpdate.Core; // 引用 TaskUpdatedEvent 所在的命名空间
-using GameFramework.Managers;
+using UnityEngine.UI;
+using Cysharp.Threading.Tasks; // 引用 UniTask
+using GameFramework.HotUpdate.UI; // 引用 ConstructPanel 所在的命名空间
 
+// 定义任务更新事件
+public struct TaskUpdatedEvent : IGameEvent
+{
+    public string Description; // 任务描述
+    public bool IsFinished;    // 是否全部完成（可选，用于控制UI显隐）
+}
 // 确保该类继承自你的 UI 基类 (UIPanel)
 public class TaskPanel : UIPanel
 {

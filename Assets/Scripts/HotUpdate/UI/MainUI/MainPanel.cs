@@ -7,7 +7,6 @@ using UnityEngine;
 using UnityEngine.UI;
 using Cysharp.Threading.Tasks; // 引用 UniTask
 using GameFramework.HotUpdate.UI; // 引用 ConstructPanel 所在的命名空间
-using GameHotfix.Guide;
 
 class MainPanel : UIPanel
 {
@@ -31,32 +30,24 @@ class MainPanel : UIPanel
     protected override void OnInit()
     {
         base.OnInit();
-
-        // 绑定建造模式按钮点击事件
         if (m_btn_PlacementSystem != null)
         {
             m_btn_PlacementSystem.onClick.AddListener(OnPlacementSystemClicked);
         }
         else
         {
-            Debug.LogError("[MainPanel] m_btn_PlacementSystem 未绑定，请检查 UI 预制体节点名称是否匹配。");
+            Debug.LogError("[MainPanel] m_btn_PlacementSystem 未绑定。");
         }
-        GuideManager.Instance.StartGuideGroup(1);
-        // 订阅资源变化事件
-        // EventManager.Instance.Subscribe<ResourceChangedEvent>(OnResourceChanged);
-
-        // 初始化时主动刷新一次所有资源显示
         RefreshAllResources();
     }
 
     /// <summary>
     /// 点击建造按钮回调
     /// </summary>
-    private void OnPlacementSystemClicked()
+    private async void OnPlacementSystemClicked()
     {
         Debug.Log("[MainPanel] 打开建造面板");
-        // "ConstructPanel" 必须是 Addressables Group 中的 Key (也是预制体的名称)
-        UIManager.Instance.ShowPanelAsync<ConstructPanel>("ConstructPanel").Forget();
+        await UIManager.Instance.ShowPanelAsync<ConstructPanel>("ConstructPanel");
     }
 
     protected void OnDestroy()
@@ -65,8 +56,6 @@ class MainPanel : UIPanel
         {
             EventManager.Instance.Unsubscribe<ResourceChangedEvent>(OnResourceChanged);
         }
-
-        // 移除监听是个好习惯，虽然 UI 销毁时通常不需要手动移除 UnityEvent
         if (m_btn_PlacementSystem != null)
         {
             m_btn_PlacementSystem.onClick.RemoveListener(OnPlacementSystemClicked);

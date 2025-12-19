@@ -2,10 +2,7 @@
 using Cinemachine;
 using GameFramework.CameraSystem;
 using GameFramework.ECS;
-using GameFramework.ECS.Components;
 using Unity.Entities;
-using Unity.Mathematics;
-using UnityEditor.Experimental.GraphView;
 using UnityEngine;
 using GameFramework.Gameplay;
 using GameFramework.Managers;

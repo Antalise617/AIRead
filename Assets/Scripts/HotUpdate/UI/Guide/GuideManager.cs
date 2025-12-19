@@ -1,6 +1,5 @@
 using cfg;
 using GameFramework.Core;
-using GameFramework.Managers;
 using UnityEngine;
 
 namespace GameHotfix.Guide
@@ -29,11 +28,11 @@ namespace GameHotfix.Guide
             }
         }
 
-        private async void EnterStep(Guide_Cfg stepCfg)
+        private void EnterStep(Guide_Cfg stepCfg)
         {
             _currentConfig = stepCfg;
 
-            // 1. 寻找目标UI (保持不变)
+            // 1. 寻找目标UI
             GameObject targetObj = GameObject.Find(stepCfg.UiPath);
             RectTransform targetRect = targetObj != null ? targetObj.GetComponent<RectTransform>() : null;
 
@@ -45,33 +44,26 @@ namespace GameHotfix.Guide
             // 2. 加载或获取GuidePanel
             if (_uiView == null)
             {
-                // 【核心修改】添加 await 关键字
-                // 假设 UIManager.Instance.ShowPanelAsync<T> 返回 UniTask<T>
-                _uiView = await UIManager.Instance.ShowPanelAsync<GuidePanel>("GuidePanel");
+                // 调用你的 UIManager 打开界面
+                // _uiView = UIManager.Instance.OpenWindow("GuidePanel");
             }
 
             // 3. 刷新界面
-            // 注意：Luban 生成的 vector2 类型可能需要转换成 UnityEngine.Vector2
-            Vector2 offset = new Vector2(stepCfg.HandOffset.x, stepCfg.HandOffset.y);
+            _uiView.Refresh(
+                targetRect,
+                stepCfg.ContentText,
+                stepCfg.ShowHand,
+                stepCfg.HandOffset // Luban里配的Vector2需要转换
+            );
 
-            if (_uiView != null)
-            {
-                _uiView.Refresh(
-                    targetRect,
-                    stepCfg.ContentText,
-                    stepCfg.ShowHand,
-                    offset
-                );
-            }
-
-            // 4. 绑定点击事件 (保持不变)
+            // 4. 绑定点击事件用于进入下一步
+            // 这里有一个技巧：如果设置了Target，通常我们监听Target本身的Button点击事件
+            // 或者 GuideMask 在检测到穿透点击时，通知Manager
             if (targetObj != null)
             {
                 var btn = targetObj.GetComponent<UnityEngine.UI.Button>();
                 if (btn != null)
                 {
-                    // 移除旧监听以防重复 (可选优化)
-                    btn.onClick.RemoveListener(OnTargetClicked);
                     btn.onClick.AddListener(OnTargetClicked);
                 }
             }

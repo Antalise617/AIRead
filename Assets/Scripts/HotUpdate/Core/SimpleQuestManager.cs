@@ -1,23 +1,11 @@
 using UnityEngine;
 using GameFramework.Events;
-using cfg;
+using cfg; // 引用包含 PlacementType 的命名空间
 using GameFramework.ECS.Components;
 using GameFramework.Managers;
-using Cysharp.Threading.Tasks;
 
 namespace HotUpdate.Core
 {
-    public struct ObjectBuiltEvent : IGameEvent
-    {
-        public PlacementType Type;
-    }
-    // 定义任务更新事件
-    public struct TaskUpdatedEvent : IGameEvent
-    {
-        public string Description; // 任务描述
-        public bool IsFinished;    // 是否全部完成（可选，用于控制UI显隐）
-    }
-
     public class SimpleQuestManager
     {
         public static readonly SimpleQuestManager Instance = new SimpleQuestManager();
@@ -31,7 +19,7 @@ namespace HotUpdate.Core
 
         public void Init()
         {
-            UIManager.Instance.ShowPanelAsync<TaskPanel>("TaskPanel").Forget();
+            _ = UIManager.Instance.ShowPanelAsync<TaskPanel>("TaskPanel");
             EventManager.Instance.Subscribe<ObjectBuiltEvent>(OnObjectBuilt);
             Debug.Log("【任务系统】启动");
             // 初始化时强制刷新一次UI

@@ -27,6 +27,11 @@ MonoBehaviour:
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 09969306f8ed9034398a574ce5d6ce54
+    m_Address: Tourist
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 187caeb518629c140a6d380bb668e17e
     m_Address: bridge_300003
     m_ReadOnly: 0
@@ -49,11 +54,6 @@ MonoBehaviour:
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 2d2e1d4ca7db3f543b94beab52a37b5a
     m_Address: bridge_300004
-    m_ReadOnly: 0
-    m_SerializedLabels: []
-    FlaggedDuringContentUpdateRestriction: 0
-  - m_GUID: 31953a051fde8484dad829aaff1274b2
-    m_Address: GuidePanel
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
@@ -87,11 +87,6 @@ MonoBehaviour:
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
-  - m_GUID: 5f9825b8640f0b2479ea857dddbc91d5
-    m_Address: Tourist
-    m_ReadOnly: 0
-    m_SerializedLabels: []
-    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 615abc76912a84344bc7acc0431ea382
     m_Address: Assets/Resources_moved/GridCell.prefab
     m_ReadOnly: 0
@@ -99,6 +94,11 @@ MonoBehaviour:
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 63124ace0e9bd4f4ea69d7c95ded5b32
     m_Address: bridge_300005
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 6413be52ec4cc624a8d6a5d6d0ea8791
+    m_Address: PlacementConfirmPanel
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
@@ -112,6 +112,11 @@ MonoBehaviour:
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 6ecf064a6b2404246b6b4b966acda525
+    m_Address: TaskPanel
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 70334a9ffc5d28c4195ed12c36cf2ae1
     m_Address: MainPanel
     m_ReadOnly: 0
@@ -119,11 +124,6 @@ MonoBehaviour:
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 8dcc4cb2f14c3854a8a2e53767a58d7a
     m_Address: island_100005
-    m_ReadOnly: 0
-    m_SerializedLabels: []
-    FlaggedDuringContentUpdateRestriction: 0
-  - m_GUID: 90ed07d2efe708f42871e8af9f1dc036
-    m_Address: TaskPanel
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
