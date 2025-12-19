@@ -4,6 +4,7 @@ using Unity.Collections;
 using Unity.Entities;
 using Unity.Mathematics;
 using UnityEngine;
+using GameFramework.Core;
 using Random = Unity.Mathematics.Random;
 
 namespace GameFramework.ECS.Systems
@@ -72,11 +73,27 @@ namespace GameFramework.ECS.Systems
                 NativeList<int> candidates = new NativeList<int>(Allocator.Temp);
                 for (int i = 0; i < buildingComps.Length; i++)
                 {
+                    Entity buildingEnt = buildingEntities[i];
+
+                    // 检查是否是服务型建筑，并且队列是否已满
+                    bool isQueueFull = false;
+                    if (SystemAPI.HasComponent<ServiceComponent>(buildingEnt))
+                    {
+                        var serviceComp = SystemAPI.GetComponent<ServiceComponent>(buildingEnt);
+                        var queueBuffer = SystemAPI.GetBuffer<ServiceQueueElement>(buildingEnt);
+
+                        // 如果队列已满，标记为不可选
+                        if (queueBuffer.Length >= serviceComp.QueueCapacity)
+                        {
+                            isQueueFull = true;
+                        }
+                    }
+
                     int bType = GetBuildingTypeAsInt(buildingComps[i].ConfigId);
 
-                    if (bType == targetType)
+                    // 只有类型匹配 且 队列未满 且 未访问过(若是商店) 才加入候选
+                    if (bType == targetType && !isQueueFull)
                     {
-                        // 如果是商店，且已经去过这个具体的ID，则跳过 (不重复进同一家店)
                         if (targetType == TYPE_SHOP && HasVisited(visitedBuffer, buildingComps[i].ConfigId))
                             continue;
 
@@ -100,12 +117,15 @@ namespace GameFramework.ECS.Systems
                     // 设置状态 -> 寻路中
                     visitor.ValueRW.CurrentState = VisitorState.Pathfinding;
 
+                    // 【新增】记录目标实体，死死记住要去哪里
+                    visitor.ValueRW.TargetBuildingEntity = targetEntity;
+
                     // 发起请求
                     pathReq.ValueRW.StartPos = gridPos.ValueRO.Value;
                     pathReq.ValueRW.EndPos = targetPos;
                     pathReq.ValueRW.IsPending = true;
 
-                    Debug.Log($"[Behavior] 游客 {visitor.ValueRO.Name} 决定去类型[{targetType}] (ID:{targetConfigId})");
+                    // Debug.Log($"[Behavior] 游客 {visitor.ValueRO.Name} 决定去 (ID:{targetConfigId})");
                 }
                 else
                 {
@@ -124,22 +144,28 @@ namespace GameFramework.ECS.Systems
         // 请根据您的实际 ConfigManager 逻辑修改此处
         private int GetBuildingTypeAsInt(int configId)
         {
-            // 示例逻辑：根据ID范围硬编码，或者调用 ConfigManager
-            // 假设：300000+ 是桥, 200000+ 是建筑
-            // 200001 = 游客中心(1), 200002 = 机场(2), 200003 = 商店(3)
+            // 1. 通过 Bridge 获取真实的 FunctionType (int)
+            // 对应 building.FunctionType 枚举: 
+            // 1=VisitorCenter, 2=Airport, 3=Engineering, 4=Talent, 5=Shop, 6=Factory
+            int funcType = GameConfigBridge.GetBuildingFunctionType(configId);
 
-            if (configId == 200001) return TYPE_VISITOR_CENTER;
-            if (configId == 200002) return TYPE_AIRPORT; // 机场
-            if (configId >= 200003) return TYPE_SHOP;    // 商店
+            // 2. 映射到 System 内部定义的常量
+            // TYPE_VISITOR_CENTER = 1, TYPE_AIRPORT = 2, TYPE_SHOP = 3
+            switch (funcType)
+            {
+                case 1:
+                    return TYPE_VISITOR_CENTER;
 
-            // 也可以尝试通过 ConfigManager 获取（如果代码生成没报错）
-            /*
-            if (ConfigManager.Instance.Tables != null) {
-                var cfg = ConfigManager.Instance.Tables.BuildingCfg.Get(configId);
-                return (int)cfg.FunctionType; 
+                case 2:
+                    return TYPE_AIRPORT;
+
+                case 5:
+                    return TYPE_SHOP; // 只有 FunctionType 为 5 (Shop) 的才被视为商店
+
+                default:
+                    // 工厂(6)、工程署(3) 等其他类型都返回 0，AI 将忽略它们
+                    return TYPE_NONE;
             }
-            */
-            return TYPE_NONE;
         }
 
         private bool HasVisited(DynamicBuffer<VisitedBuildingElement> buffer, int configId)

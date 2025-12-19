@@ -22,6 +22,7 @@ public partial class Tables
     public GuideCfg GuideCfg {get; private set; }
     public ItemCfg ItemCfg {get; private set; }
     public FactoryCfg FactoryCfg {get; private set; }
+    public ServiceCfg ServiceCfg {get; private set; }
 
     /// public Tables(System.Func<string, ByteBuf> loader)
     public Tables()
@@ -33,6 +34,7 @@ public partial class Tables
         ///        /// GuideCfg = new GuideCfg(loader("guidecfg"));
         ///        /// ItemCfg = new ItemCfg(loader("itemcfg"));
         ///        /// FactoryCfg = new FactoryCfg(loader("factorycfg"));
+        ///        /// ServiceCfg = new ServiceCfg(loader("servicecfg"));
         ///        /// ResolveRef();
     }
 
@@ -75,6 +77,11 @@ public partial class Tables
 			FactoryCfg = new FactoryCfg(await loader("factorycfg")); 
 			tables.Add("FactoryCfg", FactoryCfg);
 		}));
+		list.Add(UniTask.Create(async () =>
+		{
+			ServiceCfg = new ServiceCfg(await loader("servicecfg")); 
+			tables.Add("ServiceCfg", ServiceCfg);
+		}));
 
 		await UniTask.WhenAll(list);
 
@@ -90,6 +97,7 @@ public partial class Tables
         GuideCfg.ResolveRef(this);
         ItemCfg.ResolveRef(this);
         FactoryCfg.ResolveRef(this);
+        ServiceCfg.ResolveRef(this);
     }
 }
 

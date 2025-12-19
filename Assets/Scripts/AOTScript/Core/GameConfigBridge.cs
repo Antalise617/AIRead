@@ -21,7 +21,17 @@ namespace GameFramework.Core
         IslandData GetIslandData(int configId);
 
         bool TryGetFactoryConfig(int configId, out GameFramework.ECS.Components.ProductionComponent config);
+        ServiceBuildingInfo GetServiceConfig(int buildingId);
+    }
 
+    public struct ServiceBuildingInfo
+    {
+        public bool Found;
+        public float ServiceTime;
+        public int QueueCapacity;
+        public int MaxConcurrentNum;
+        public int OutputItemId;
+        public int OutputItemCount;
     }
 
     public static class GameConfigBridge
@@ -42,6 +52,11 @@ namespace GameFramework.Core
             if (Service != null) return Service.TryGetFactoryConfig(configId, out config);
             config = default;
             return false;
+        }
+        // 新增接口：根据建筑ID获取服务配置
+        public static ServiceBuildingInfo GetServiceConfig(int buildingId)
+        {
+            return Service?.GetServiceConfig(buildingId) ?? new ServiceBuildingInfo();
         }
     }
 }
