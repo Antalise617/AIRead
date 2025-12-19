@@ -17,7 +17,7 @@ namespace GameHotfix.Guide
         {
             // 从Luban表中查找该组的第一步 (这里假设你遍历表或者有辅助索引)
             // 示例逻辑：
-            var config = ConfigManager.Instance.Tables.Guide_Cfg;
+            var config = ConfigManager.Instance.Tables.GuideCfg;
             foreach (var data in config.DataList)
             {
                 if (data.GroupId == groupId)
@@ -75,7 +75,7 @@ namespace GameHotfix.Guide
             // 完成当前步，检查NextId
             if (_currentConfig.NextId != 0)
             {
-                var config = ConfigManager.Instance.Tables.Guide_Cfg;
+                var config = ConfigManager.Instance.Tables.GuideCfg;
                 var nextData = config.Get(_currentConfig.NextId);
                 EnterStep(nextData);
             }
