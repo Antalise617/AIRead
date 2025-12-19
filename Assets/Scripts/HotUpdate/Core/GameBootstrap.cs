@@ -7,6 +7,7 @@ using GameFramework.Managers;
 using HotUpdate.Core;
 using Unity.Entities;
 using UnityEngine;
+using Game.HotUpdate;
 
 namespace GameFramework.Core
 {
@@ -38,6 +39,9 @@ namespace GameFramework.Core
             SaveManager.Instance.Initialize();
             PoolManager.Instance.Initialize();
             SimpleQuestManager.Instance.Init();
+
+            GameInventoryBridge.Service = (IGameInventoryService)GlobalInventoryManager.Instance;
+            GlobalInventoryManager.Instance.LoadInventory(null);
 
             // Entities 1.0+: 自动初始化默认世界
             var world = World.DefaultGameObjectInjectionWorld ?? DefaultWorldInitialization.Initialize("Default World");

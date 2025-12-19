@@ -83,40 +83,5 @@ namespace HotUpdate.Core
             return data;
         }
 
-        public ProductionConfigData GetProductionConfig(int buildingConfigId)
-        {
-            var cfg = ConfigManager.Instance.Tables.BuildingCfg.Get(buildingConfigId);
-            if (cfg != null)
-            {
-                // 这里模拟读取配置，实际请根据您的 Excel 表头修改字段名
-                // 假设 ID 200003 是金矿 (无消耗，产出金币)
-                if (buildingConfigId == 200003)
-                {
-                    return new ProductionConfigData
-                    {
-                        InputItemId = 0,
-                        InputCount = 0,
-                        OutputItemId = 1003, // 金币
-                        OutputCount = 10,
-                        Interval = 5.0f,
-                        MaxReserves = 500
-                    };
-                }
-                // 假设 ID 200004 是加工厂 (消耗木头，产出木板)
-                else if (buildingConfigId == 200004)
-                {
-                    return new ProductionConfigData
-                    {
-                        InputItemId = 1001, // 木头
-                        InputCount = 2,
-                        OutputItemId = 1002, // 木板
-                        OutputCount = 1,
-                        Interval = 3.0f,
-                        MaxReserves = 50
-                    };
-                }
-            }
-            return new ProductionConfigData { Interval = 9999f };
-        }
     }
 }

@@ -1,11 +1,20 @@
 using GameFramework.ECS.Components;
 using GameFramework.Core;
+using GameFramework.Events; // 引用 EventManager
 using Unity.Entities;
 using Unity.Burst;
 using UnityEngine;
 
 namespace GameFramework.ECS.Systems
 {
+    // 定义一个收集事件，用于播放特效或飘字
+    public struct ProductionCollectedEvent : IGameEvent
+    {
+        public int ItemId;
+        public int Count;
+        public Vector3 WorldPos;
+    }
+
     [UpdateInGroup(typeof(SimulationSystemGroup))]
     public partial class ProductionSystem : SystemBase
     {
@@ -15,7 +24,6 @@ namespace GameFramework.ECS.Systems
             var em = EntityManager;
 
             // 遍历所有带生产组件的实体
-            // 注意：这里需要 RefRW (读写权限)
             foreach (var (prodRef, entity) in SystemAPI.Query<RefRW<ProductionComponent>>().WithEntityAccess())
             {
                 ref var prod = ref prodRef.ValueRW;
@@ -24,18 +32,19 @@ namespace GameFramework.ECS.Systems
                 if (!prod.IsActive) continue;
 
                 // 2. 检查储量是否已满
-                // 如果当前储量 + 产出量 > 上限，则停止生产
                 if (prod.CurrentReserves + prod.OutputCount > prod.MaxReserves)
                 {
-                    // 储量已满，停止计时 (可选：在这里播放满仓特效)
-                    continue;
+                    continue; // 储量已满
                 }
 
-                // 3. 检查原料是否充足 (如果有输入要求)
-                // 原料通常存在建筑自身的背包里 (InventoryItemElement)
+                // 3. [已完善] 检查原料是否充足 (通过桥接访问全局库存)
                 if (prod.InputItemId > 0 && prod.InputCount > 0)
                 {
-                    // TODO:补充逻辑
+                    // 如果全局库存不足，暂停计时
+                    if (!GameInventoryBridge.HasItem(prod.InputItemId, prod.InputCount))
+                    {
+                        continue;
+                    }
                 }
 
                 // 4. 推进进度
@@ -44,35 +53,41 @@ namespace GameFramework.ECS.Systems
                 // 5. 完成生产
                 if (prod.Timer >= prod.ProductionInterval)
                 {
-                    prod.Timer -= prod.ProductionInterval;
-
-                    // A. 扣除原料
+                    // A. [已完善] 扣除原料
+                    // 再次检查并尝试扣除（防止多线程或极其边缘的情况，虽然这里是主线程）
                     if (prod.InputItemId > 0 && prod.InputCount > 0)
                     {
-                        // TODO:补充逻辑
+                        if (!GameInventoryBridge.TryConsumeItem(prod.InputItemId, prod.InputCount))
+                        {
+                            // 扣除失败（可能瞬间被用掉了），回退进度，这帧不产出
+                            prod.Timer = prod.ProductionInterval;
+                            continue;
+                        }
                     }
 
-                    // B. 增加储量 (关键变化：不再直接进背包，而是进 CurrentReserves)
+                    // B. 增加储量
+                    prod.Timer -= prod.ProductionInterval;
                     prod.CurrentReserves += prod.OutputCount;
 
-                    // Debug.Log($"[Production] 建筑 {entity.Index} 产出增加，当前储量: {prod.CurrentReserves}/{prod.MaxReserves}");
+                    // 防御性逻辑：确保不超过上限
+                    if (prod.CurrentReserves > prod.MaxReserves)
+                        prod.CurrentReserves = prod.MaxReserves;
                 }
             }
         }
 
         // ========================================================================
-        // [新增] 静态 API：收取产物
-        // 供 InteractionSystem (点击事件) 或 UI 调用
+        // [已完善] 静态 API：收取产物
         // ========================================================================
 
         /// <summary>
-        /// 尝试收取建筑内的产物到目标背包 (通常是玩家背包)
+        /// 尝试收取建筑内的产物到目标背包
         /// </summary>
-        /// <returns>收取的数量</returns>
-        public static int CollectProduction(EntityManager em, Entity buildingEntity, Entity targetInventoryEntity)
+        public static int CollectProduction(EntityManager em, Entity buildingEntity)
         {
             if (!em.HasComponent<ProductionComponent>(buildingEntity)) return 0;
 
+            // 获取组件副本
             var prod = em.GetComponentData<ProductionComponent>(buildingEntity);
 
             if (prod.CurrentReserves <= 0) return 0;
@@ -80,15 +95,16 @@ namespace GameFramework.ECS.Systems
             int amountToCollect = prod.CurrentReserves;
             int itemId = prod.OutputItemId;
 
-            // 收集产物
-            // TODO:补充逻辑
+            // 1. [关键] 将产物添加到全局库存 (通过桥接)
+            GameInventoryBridge.AddItem(itemId, amountToCollect);
 
             // 2. 清空建筑储量并回写组件
             prod.CurrentReserves = 0;
-            // 收集后通常重置计时器，或者保持原样，视策划需求而定。这里保持原样，允许连续生产。
             em.SetComponentData(buildingEntity, prod);
 
-            Debug.Log($"[Production] 收取了 {amountToCollect} 个 {itemId}");
+            Debug.Log($"[Production] 成功收取: ID {itemId} x{amountToCollect}");
+
+
             return amountToCollect;
         }
     }

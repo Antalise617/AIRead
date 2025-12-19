@@ -20,17 +20,6 @@ namespace GameFramework.Core
         // 获取完整的岛屿数据 (用于 GridSystem)
         IslandData GetIslandData(int configId);
 
-        ProductionConfigData GetProductionConfig(int buildingConfigId);
-    }
-
-    public struct ProductionConfigData
-    {
-        public int InputItemId;
-        public int InputCount;
-        public int OutputItemId;
-        public int OutputCount;
-        public float Interval;
-        public int MaxReserves;
     }
 
     public static class GameConfigBridge
@@ -44,6 +33,5 @@ namespace GameFramework.Core
         public static int GetBuildingFunctionType(int configId) => Service?.GetBuildingFunctionType(configId) ?? 0;
         public static float2 GetVisitorCenterConfig(int configId) => Service?.GetVisitorCenterConfig(configId) ?? float2.zero;
         public static IslandData GetIslandData(int configId) => Service?.GetIslandData(configId);
-        public static ProductionConfigData GetProductionConfig(int id) => Service?.GetProductionConfig(id) ?? new ProductionConfigData();
     }
 }

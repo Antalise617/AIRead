@@ -22,6 +22,7 @@ public sealed partial class Building_Config : Luban.BeanBase
         Length = _buf.ReadInt();
         Width = _buf.ReadInt();
         FunctionType = (building.FunctionType)_buf.ReadInt();
+        FunctionId = _buf.ReadInt();
     }
 
     public static Building_Config DeserializeBuilding_Config(ByteBuf _buf)
@@ -53,12 +54,17 @@ public sealed partial class Building_Config : Luban.BeanBase
     /// 建筑类型
     /// </summary>
     public readonly building.FunctionType FunctionType;
+    /// <summary>
+    /// 功能id
+    /// </summary>
+    public readonly int FunctionId;
    
     public const int __ID__ = 1848139565;
     public override int GetTypeId() => __ID__;
 
     public  void ResolveRef(Tables tables)
     {
+        
         
         
         
@@ -76,6 +82,7 @@ public sealed partial class Building_Config : Luban.BeanBase
         + "length:" + Length + ","
         + "width:" + Width + ","
         + "functionType:" + FunctionType + ","
+        + "FunctionId:" + FunctionId + ","
         + "}";
     }
 }

@@ -1,12 +1,13 @@
 using GameFramework.Managers;
 using GameFramework.UI;
 using GameFramework.Core;
-using GameFramework.Events;
+// using GameFramework.Events; // 不再需要通用的 EventManager
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
-using Cysharp.Threading.Tasks; // 引用 UniTask
-using GameFramework.HotUpdate.UI; // 引用 ConstructPanel 所在的命名空间
+using Cysharp.Threading.Tasks;
+using GameFramework.HotUpdate.UI;
+using Game.HotUpdate; // 引用 GlobalInventoryManager 所在的命名空间
 
 class MainPanel : UIPanel
 {
@@ -20,42 +21,36 @@ class MainPanel : UIPanel
     [UIBind] private TextMeshProUGUI m_tmp_OilNumText;
     [UIBind] private TextMeshProUGUI m_tmp_GoldCoinNumText;
 
-    // 活动按钮部分
+    // 按钮部分
     [UIBind] private Button m_btn_ActivityGift;
     [UIBind] private Button m_btn_7DayCheckIn;
-
-    // 功能按钮
     [UIBind] private Button m_btn_PlacementSystem;
 
     protected override void OnInit()
     {
         base.OnInit();
+
+        // 绑定按钮事件
         if (m_btn_PlacementSystem != null)
         {
             m_btn_PlacementSystem.onClick.AddListener(OnPlacementSystemClicked);
         }
-        else
-        {
-            Debug.LogError("[MainPanel] m_btn_PlacementSystem 未绑定。");
-        }
-        RefreshAllResources();
-    }
 
-    /// <summary>
-    /// 点击建造按钮回调
-    /// </summary>
-    private async void OnPlacementSystemClicked()
-    {
-        Debug.Log("[MainPanel] 打开建造面板");
-        await UIManager.Instance.ShowPanelAsync<ConstructPanel>("ConstructPanel");
+        // 【关键修改】监听库存变化事件
+        GlobalInventoryManager.Instance.OnItemChanged += OnInventoryItemChanged;
+
+        // 初始化显示
+        RefreshAllResources();
     }
 
     protected void OnDestroy()
     {
-        if (EventManager.Instance != null)
+        // 【关键修改】移除事件监听，防止内存泄漏
+        if (GlobalInventoryManager.Instance != null)
         {
-            EventManager.Instance.Unsubscribe<ResourceChangedEvent>(OnResourceChanged);
+            GlobalInventoryManager.Instance.OnItemChanged -= OnInventoryItemChanged;
         }
+
         if (m_btn_PlacementSystem != null)
         {
             m_btn_PlacementSystem.onClick.RemoveListener(OnPlacementSystemClicked);
@@ -65,29 +60,32 @@ class MainPanel : UIPanel
     protected override void OnShow()
     {
         base.OnShow();
+        // 每次打开面板时也刷新一次，确保数据最新
         RefreshAllResources();
     }
 
     /// <summary>
-    /// 事件回调：当资源发生变化时自动调用
+    /// 【新增】库存发生变化时的回调
     /// </summary>
-    private void OnResourceChanged(ResourceChangedEvent evt)
+    /// <param name="itemId">物品ID</param>
+    /// <param name="change">变化量</param>
+    /// <param name="total">当前总量</param>
+    private void OnInventoryItemChanged(int itemId, long change, long total)
     {
-        switch (evt.Type)
+        // 根据 ID 更新对应的 UI 文本
+        switch (itemId)
         {
-            case ResourceType.Wood:
-                if (m_tmp_WoodNumText != null)
-                    m_tmp_WoodNumText.text = evt.NewValue.ToString();
+            case GlobalInventoryManager.ITEM_ID_WOOD:
+                if (m_tmp_WoodNumText != null) m_tmp_WoodNumText.text = total.ToString();
                 break;
-
-            case ResourceType.Stone:
-                if (m_tmp_RockNumText != null)
-                    m_tmp_RockNumText.text = evt.NewValue.ToString();
+            case GlobalInventoryManager.ITEM_ID_STONE:
+                if (m_tmp_RockNumText != null) m_tmp_RockNumText.text = total.ToString();
                 break;
-
-            case ResourceType.Gold:
-                if (m_tmp_GoldCoinNumText != null)
-                    m_tmp_GoldCoinNumText.text = evt.NewValue.ToString();
+            case GlobalInventoryManager.ITEM_ID_OIL:
+                if (m_tmp_OilNumText != null) m_tmp_OilNumText.text = total.ToString();
+                break;
+            case GlobalInventoryManager.ITEM_ID_GOLD:
+                if (m_tmp_GoldCoinNumText != null) m_tmp_GoldCoinNumText.text = total.ToString();
                 break;
         }
     }
@@ -97,33 +95,26 @@ class MainPanel : UIPanel
     /// </summary>
     private void RefreshAllResources()
     {
-        var resMgr = GameResourceManager.Instance;
-        if (resMgr == null)
-        {
-            Debug.Log("GameResourceManager未初始化");
-            return;
-        }
+        var invMgr = GlobalInventoryManager.Instance;
+        if (invMgr == null) return;
 
-        int wood = resMgr.GetResource(ResourceType.Wood);
-        int stone = resMgr.GetResource(ResourceType.Stone);
-        int gold = resMgr.GetResource(ResourceType.Gold);
-        int oil = 0; // 假设石油逻辑还没接
-
-        SetResourcesNum(wood, stone, oil, gold);
-    }
-
-    private void SetResourcesNum(int wood, int rock, int oil, int goldCoin)
-    {
+        // 直接从 Inventory 获取数据
         if (m_tmp_WoodNumText != null)
-            m_tmp_WoodNumText.text = wood.ToString();
+            m_tmp_WoodNumText.text = invMgr.GetItemCount(GlobalInventoryManager.ITEM_ID_WOOD).ToString();
 
         if (m_tmp_RockNumText != null)
-            m_tmp_RockNumText.text = rock.ToString();
+            m_tmp_RockNumText.text = invMgr.GetItemCount(GlobalInventoryManager.ITEM_ID_STONE).ToString();
 
         if (m_tmp_OilNumText != null)
-            m_tmp_OilNumText.text = oil.ToString();
+            m_tmp_OilNumText.text = invMgr.GetItemCount(GlobalInventoryManager.ITEM_ID_OIL).ToString();
 
         if (m_tmp_GoldCoinNumText != null)
-            m_tmp_GoldCoinNumText.text = goldCoin.ToString();
+            m_tmp_GoldCoinNumText.text = invMgr.GetItemCount(GlobalInventoryManager.ITEM_ID_GOLD).ToString();
+    }
+
+    private async void OnPlacementSystemClicked()
+    {
+        Debug.Log("[MainPanel] 打开建造面板");
+        await UIManager.Instance.ShowPanelAsync<ConstructPanel>("ConstructPanel");
     }
 }
