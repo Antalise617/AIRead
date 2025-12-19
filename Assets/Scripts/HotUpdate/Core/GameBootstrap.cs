@@ -40,7 +40,7 @@ namespace GameFramework.Core
             PoolManager.Instance.Initialize();
             SimpleQuestManager.Instance.Init();
 
-            GameInventoryBridge.Service = (IGameInventoryService)GlobalInventoryManager.Instance;
+            //GameInventoryBridge.Service = (IGameInventoryService)GlobalInventoryManager.Instance;
             GlobalInventoryManager.Instance.LoadInventory(null);
 
             // Entities 1.0+: 自动初始化默认世界

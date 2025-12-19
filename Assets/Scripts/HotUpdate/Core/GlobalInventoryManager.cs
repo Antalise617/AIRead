@@ -6,19 +6,20 @@ using GameFramework;
 
 namespace Game.HotUpdate
 {
-    public class GlobalInventoryManager : Singleton<GlobalInventoryManager>
+    // 【关键修改】在这里添加 ", IGameInventoryService"
+    public class GlobalInventoryManager : Singleton<GlobalInventoryManager>, IGameInventoryService
     {
         private readonly Dictionary<int, long> _inventory = new Dictionary<int, long>();
         public event Action<int, long, long> OnItemChanged;
 
-        // 定义资源 ID (请确保这些 ID 在你的 Item.xlsx 表中存在)
+        // 定义资源 ID
         public const int ITEM_ID_WOOD = 101;
         public const int ITEM_ID_STONE = 102;
         public const int ITEM_ID_OIL = 103;
         public const int ITEM_ID_GOLD = 104;
 
         /// <summary>
-        /// 加载库存数据（传入 null 则初始化默认资源）
+        /// 加载库存数据
         /// </summary>
         public void LoadInventory(Dictionary<int, long> savedData)
         {
@@ -26,7 +27,6 @@ namespace Game.HotUpdate
 
             if (savedData != null && savedData.Count > 0)
             {
-                // 如果有存档数据，就加载存档
                 foreach (var kvp in savedData)
                 {
                     _inventory[kvp.Key] = kvp.Value;
@@ -35,13 +35,7 @@ namespace Game.HotUpdate
             }
             else
             {
-                // -------------------------------------------------------------
-                // 【核心修改】如果没有数据，直接发放默认测试资源
-                // -------------------------------------------------------------
                 Debug.Log("全局物品管理器：未发现存档，发放【默认模拟数据】...");
-
-                // 模拟发放资源：木头、石头、石油各 1000，金币 5000
-                // AddItem 内部会自动校验 ID 是否有效，并触发 UI 刷新事件
                 AddItem(ITEM_ID_WOOD, 1000);
                 AddItem(ITEM_ID_STONE, 1000);
                 AddItem(ITEM_ID_OIL, 1000);
@@ -49,10 +43,13 @@ namespace Game.HotUpdate
             }
         }
 
-        #region 查询与操作 (保持不变)
+        #region IGameInventoryService 接口实现 & 查询操作
 
         public cfg.Item_Cfg GetConfig(int itemId)
         {
+            // 确保 ConfigManager 已初始化且表已加载
+            if (ConfigManager.Instance == null || ConfigManager.Instance.Tables == null)
+                return null;
             return ConfigManager.Instance.Tables.ItemCfg.GetOrDefault(itemId);
         }
 
@@ -61,8 +58,10 @@ namespace Game.HotUpdate
             return _inventory.TryGetValue(itemId, out long count) ? count : 0;
         }
 
+        // 接口方法实现
         public bool HasItem(int itemId, long amount) => GetItemCount(itemId) >= amount;
 
+        // 接口方法实现
         public void AddItem(int itemId, long amount)
         {
             if (amount <= 0) return;
@@ -77,10 +76,10 @@ namespace Game.HotUpdate
             if (!_inventory.ContainsKey(itemId)) _inventory[itemId] = 0;
             _inventory[itemId] += amount;
 
-            // 触发事件通知 UI 更新
             OnItemChanged?.Invoke(itemId, amount, _inventory[itemId]);
         }
 
+        // 接口方法实现
         public bool TryConsumeItem(int itemId, long amount)
         {
             if (amount <= 0) return true;
@@ -93,5 +92,4 @@ namespace Game.HotUpdate
 
         #endregion
     }
-
 }

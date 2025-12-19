@@ -83,5 +83,53 @@ namespace HotUpdate.Core
             return data;
         }
 
+        public bool TryGetFactoryConfig(int buildingId, out ProductionComponent config)
+        {
+            config = default;
+            var tables = ConfigManager.Instance.Tables;
+            if (tables == null) return false;
+
+            // 1. 先通过 buildingId 获取建筑配置
+            var buildingData = tables.BuildingCfg.GetOrDefault(buildingId);
+            if (buildingData == null) return false;
+
+            // 2. 【核心修复】获取建筑配置里的 FunctionId (比如油田的FunctionId是210001)
+            int factoryId = buildingData.FunctionId;
+
+            // 3. 使用 factoryId 去查工厂配置表，而不是用 buildingId
+            var factoryData = tables.FactoryCfg.GetOrDefault(factoryId);
+
+            // 如果没找到，说明配表有误或该建筑没配生产数据
+            if (factoryData == null)
+            {
+                // UnityEngine.Debug.LogWarning($"建筑 {buildingId} 的 FunctionId {factoryId} 在 FactoryCfg 中找不到对应配置！");
+                return false;
+            }
+
+            // 4. 映射数据
+            config = new ProductionComponent
+            {
+                // 注意：InputItem 是个列表，这里只取第一组作为演示，具体根据你的需求改为遍历或取特定索引
+                InputItemId = (factoryData.InputItem != null && factoryData.InputItem.Count > 0 && factoryData.InputItem[0].Count > 0)
+                              ? factoryData.InputItem[0][0] : 0,
+                InputCount = (factoryData.InputItem != null && factoryData.InputItem.Count > 0 && factoryData.InputItem[0].Count > 1)
+                              ? factoryData.InputItem[0][1] : 0,
+
+                OutputItemId = (factoryData.OutputItem != null && factoryData.OutputItem.Count > 0 && factoryData.OutputItem[0].Count > 0)
+                               ? factoryData.OutputItem[0][0] : 0,
+                OutputCount = (factoryData.OutputItem != null && factoryData.OutputItem.Count > 0 && factoryData.OutputItem[0].Count > 1)
+                               ? factoryData.OutputItem[0][1] : 0,
+
+                ProductionInterval = factoryData.Time,
+                MaxReserves = factoryData.MaxReserves,
+
+                // 运行时初始状态
+                IsActive = true,
+                Timer = 0f,
+                CurrentReserves = 0
+            };
+
+            return true;
+        }
     }
 }

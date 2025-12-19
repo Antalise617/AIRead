@@ -20,6 +20,8 @@ namespace GameFramework.Core
         // 获取完整的岛屿数据 (用于 GridSystem)
         IslandData GetIslandData(int configId);
 
+        bool TryGetFactoryConfig(int configId, out GameFramework.ECS.Components.ProductionComponent config);
+
     }
 
     public static class GameConfigBridge
@@ -33,5 +35,13 @@ namespace GameFramework.Core
         public static int GetBuildingFunctionType(int configId) => Service?.GetBuildingFunctionType(configId) ?? 0;
         public static float2 GetVisitorCenterConfig(int configId) => Service?.GetVisitorCenterConfig(configId) ?? float2.zero;
         public static IslandData GetIslandData(int configId) => Service?.GetIslandData(configId);
+
+        // 在 GameConfigBridge 类中添加
+        public static bool TryGetFactoryConfig(int configId, out GameFramework.ECS.Components.ProductionComponent config)
+        {
+            if (Service != null) return Service.TryGetFactoryConfig(configId, out config);
+            config = default;
+            return false;
+        }
     }
 }

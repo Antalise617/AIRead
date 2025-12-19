@@ -92,10 +92,29 @@ namespace GameFramework.ECS.Systems
                         _gridSystem.RegisterBuilding(req.Position, req.Size, new FixedString64Bytes(req.ObjectId.ToString()));
 
                         int fType = GameConfigBridge.GetBuildingFunctionType(req.ObjectId);
-                        if (fType == FUNC_VISITOR_CENTER)
+                        switch (fType)
                         {
-                            var cfg = GameConfigBridge.GetVisitorCenterConfig(req.ObjectId);
-                            EntityManager.AddComponentData(spawned, new VisitorCenterComponent { UnspawnedVisitorCount = (int)cfg.x, SpawnInterval = cfg.y });
+                            case 1:
+                                var cfg = GameConfigBridge.GetVisitorCenterConfig(req.ObjectId);
+                                EntityManager.AddComponentData(spawned, new VisitorCenterComponent
+                                {
+                                    UnspawnedVisitorCount = (int)cfg.x,
+                                    SpawnInterval = cfg.y
+                                });
+                                break;
+
+                            case 6:
+                                if (GameConfigBridge.TryGetFactoryConfig(req.ObjectId, out ProductionComponent prodConfig))
+                                {
+                                    prodConfig.Timer = 0f;
+                                    prodConfig.CurrentReserves = 0;
+                                    prodConfig.IsActive = true;
+                                    EntityManager.AddComponentData(spawned, prodConfig);
+                                }
+                                break;
+                            default:
+                                // 普通装饰性建筑，无特殊逻辑
+                                break;
                         }
 
                         EntityManager.AddComponentData(spawned, new BuildingComponent { ConfigId = req.ObjectId, Size = req.Size, FuncType = fType });
