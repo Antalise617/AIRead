@@ -1,22 +1,18 @@
 using GameFramework.ECS.Components;
-using Unity.Burst;
-using Unity.Collections;
 using Unity.Entities;
 using Unity.Physics;
 using Unity.Physics.Systems;
 using UnityEngine;
+using Cysharp.Threading.Tasks;
+using GameFramework.Managers;
+using GameFramework.Core;
 using RaycastHit = Unity.Physics.RaycastHit;
 
 namespace GameFramework.ECS.Systems
 {
-    /// <summary>
-    /// 交互系统：处理对已存在建筑/岛屿的点击
-    /// 对应项目1的 Manager 中的 Click/Destroy 逻辑
-    /// </summary>
     [UpdateInGroup(typeof(GameplaySystemGroup))]
     public partial class InteractionSystem : SystemBase
     {
-        private GridSystem _gridSystem;
         private Camera _mainCamera;
 
         protected override void OnCreate()
@@ -27,78 +23,69 @@ namespace GameFramework.ECS.Systems
 
         protected override void OnStartRunning()
         {
-            _gridSystem = World.GetExistingSystemManaged<GridSystem>();
             _mainCamera = Camera.main;
         }
 
         protected override void OnUpdate()
         {
-            // 如果处于放置模式，则不处理交互（根据需求调整）
+            // 如果处于放置模式，则不处理交互
             if (SystemAPI.HasSingleton<PlacementStateComponent>())
             {
-                var state = SystemAPI.GetSingleton<PlacementStateComponent>();
-                if (state.IsActive) return;
+                if (SystemAPI.GetSingleton<PlacementStateComponent>().IsActive) return;
             }
 
-            // 鼠标左键点击选择/查看
             if (Input.GetMouseButtonDown(0))
             {
-                HandleClick();
-            }
-
-            // 示例：按 Delete 键销毁当前鼠标悬停的建筑 (对应项目1的 DestroyBuilding)
-            // 实际项目中可能需要先选中再点击 UI 按钮来触发
-            if (Input.GetKeyDown(KeyCode.Delete))
-            {
-                HandleDestroy();
+                HandleSelection();
             }
         }
 
-        private void HandleClick()
+        private void HandleSelection()
         {
+            // 1. 无论是否击中，先关闭所有可能存在的交互控件 (确保唯一性)
+            CloseAllWidgets();
+
             Entity hitEntity = PerformRaycast();
+
+            // 2. 如果未击中任何物体，流程结束（UI 已在第 1 步关闭）
             if (hitEntity == Entity.Null) return;
 
+            // 3. 判定击中物体的类型
             if (EntityManager.HasComponent<BuildingComponent>(hitEntity))
             {
-                var building = EntityManager.GetComponentData<BuildingComponent>(hitEntity);
-                Debug.Log($"[Interaction] 选中建筑: ID {building.ConfigId}");
-                // TODO: 触发 UI 事件，显示建筑详情
-                // EventManager.Instance.TriggerEvent("BuildingClicked", building.ConfigId);
+                ShowWidgetAsync<UIFollowPanel>(hitEntity, "ClickBuildingWidget").Forget();
             }
             else if (EntityManager.HasComponent<IslandComponent>(hitEntity))
             {
-                var island = EntityManager.GetComponentData<IslandComponent>(hitEntity);
-                Debug.Log($"[Interaction] 选中岛屿: ID {island.ConfigId}");
+                ShowWidgetAsync<UIFollowPanel>(hitEntity, "ClickIslandWidget").Forget();
             }
+            // 4. 如果点击了其他带有 Collider 的物体（如地面/装饰），UI 保持关闭状态
         }
 
-        private void HandleDestroy()
+        private void CloseAllWidgets()
         {
-            Entity hitEntity = PerformRaycast();
-            if (hitEntity == Entity.Null) return;
+            // 直接调用 UIManager 隐藏相关的交互面板 Key
+            UIManager.Instance.HidePanel("ClickIslandWidget");
+            UIManager.Instance.HidePanel("ClickBuildingWidget");
+        }
 
-            if (EntityManager.HasComponent<BuildingComponent>(hitEntity))
+        private async UniTaskVoid ShowWidgetAsync<T>(Entity entity, string panelKey) where T : UIFollowPanel
+        {
+            var widget = await UIManager.Instance.ShowPanelAsync<T>(panelKey);
+            if (widget != null)
             {
-                var building = EntityManager.GetComponentData<BuildingComponent>(hitEntity);
-                var pos = EntityManager.GetComponentData<GridPositionComponent>(hitEntity).Value;
-
-                // 1. 数据层注销
-                FixedString64Bytes bid = new FixedString64Bytes(building.ConfigId.ToString());
-                _gridSystem.UnregisterBuilding(pos, building.Size, bid);
-
-                // 2. 销毁实体
-                EntityManager.DestroyEntity(hitEntity);
-                Debug.Log($"[Interaction] 拆除建筑: {pos}");
+                widget.Bind(entity);
             }
-            // 同样可以添加岛屿的拆除逻辑...
         }
 
         private Entity PerformRaycast()
         {
+            if (!SystemAPI.HasSingleton<PhysicsWorldSingleton>()) return Entity.Null;
+
             var collisionWorld = SystemAPI.GetSingleton<PhysicsWorldSingleton>().CollisionWorld;
             UnityEngine.Ray unityRay = _mainCamera.ScreenPointToRay(Input.mousePosition);
-            var rayInput = new RaycastInput
+
+            RaycastInput rayInput = new RaycastInput
             {
                 Start = unityRay.origin,
                 End = unityRay.origin + unityRay.direction * 1000f,
@@ -109,6 +96,7 @@ namespace GameFramework.ECS.Systems
             {
                 return hit.Entity;
             }
+
             return Entity.Null;
         }
     }

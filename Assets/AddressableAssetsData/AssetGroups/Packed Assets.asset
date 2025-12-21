@@ -32,6 +32,11 @@ MonoBehaviour:
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 1736713df23aa214aaa25cb92189642d
+    m_Address: BuildingServicePanel
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 187caeb518629c140a6d380bb668e17e
     m_Address: bridge_300003
     m_ReadOnly: 0
@@ -44,11 +49,6 @@ MonoBehaviour:
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 20e13a5c25acedb45b3b6ea288f386be
     m_Address: island_100004
-    m_ReadOnly: 0
-    m_SerializedLabels: []
-    FlaggedDuringContentUpdateRestriction: 0
-  - m_GUID: 2ad426a33d1dd4444afd3f0c8b3fdc5b
-    m_Address: Assets/Prefabs/Widget/IslandWidget.prefab
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
@@ -69,11 +69,6 @@ MonoBehaviour:
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 44606e7280adf7f47a2a0ede882dd36a
     m_Address: building_200006
-    m_ReadOnly: 0
-    m_SerializedLabels: []
-    FlaggedDuringContentUpdateRestriction: 0
-  - m_GUID: 5279bdf0032e3694eadd0b9f80578c42
-    m_Address: Assets/Prefabs/Widget/ConstructIslandWidget.prefab
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
@@ -138,7 +133,7 @@ MonoBehaviour:
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: aa3386a1f1e597c43960b04fb07b1615
-    m_Address: Assets/Prefabs/Widget/ClickBuildingWidget.prefab
+    m_Address: ClickBuildingWidget
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
@@ -147,11 +142,6 @@ MonoBehaviour:
     m_ReadOnly: 0
     m_SerializedLabels:
     - UICanvas
-    FlaggedDuringContentUpdateRestriction: 0
-  - m_GUID: ba7fffb9e78deba49b2e9ca6cb2f9cd0
-    m_Address: Assets/Prefabs/Widget/ChoiceIslandOrBuildingWidget.prefab
-    m_ReadOnly: 0
-    m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: ce094bccd2841954eb48b9167a712f2a
     m_Address: island_100003
@@ -168,13 +158,18 @@ MonoBehaviour:
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: eb402f9dde9ec164786464595bc0494d
+    m_Address: BuildingProductionPanel
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: ecfaaca26b6b6174ca47223df6af6564
     m_Address: island_100002
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: ef80f1a3c6e2151429c4567bbbcb7aa4
-    m_Address: Assets/Prefabs/Widget/ClickIslandWidget.prefab
+    m_Address: ClickIslandWidget
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
