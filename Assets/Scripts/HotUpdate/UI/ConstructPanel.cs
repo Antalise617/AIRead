@@ -95,13 +95,13 @@ namespace GameFramework.HotUpdate.UI
             switch (_currentType)
             {
                 case PlacementType.Island:
-                    dataList = tables.IslandCfg.DataList;
+                    dataList = tables.TbIsland.DataList;
                     break;
                 case PlacementType.Building:
-                    dataList = tables.BuildingCfg.DataList;
+                    dataList = tables.TbBuild.DataList;
                     break;
                 case PlacementType.Bridge:
-                    dataList = tables.BridgeCfg.DataList;
+                    dataList = tables.TbBridge.DataList;
                     break;
             }
 
@@ -119,17 +119,17 @@ namespace GameFramework.HotUpdate.UI
                     string name = "Unknown";
 
                     // 使用模式匹配获取属性，避免 dynamic 问题
-                    if (itemData is Island_Config island)
+                    if (itemData is Island island)
                     {
                         id = island.Id;
                         name = island.Name;
                     }
-                    else if (itemData is Building_Config building)
+                    else if (itemData is Build building)
                     {
                         id = building.Id;
                         name = building.Name;
                     }
-                    else if (itemData is Bridge_Config bridge)
+                    else if (itemData is Bridge bridge)
                     {
                         id = bridge.Id;
                         name = $"桥梁 {bridge.Id}"; // 桥梁表可能没有 Name 字段

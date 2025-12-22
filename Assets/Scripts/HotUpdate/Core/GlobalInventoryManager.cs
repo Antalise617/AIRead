@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 using GameFramework;
+using cfg;
 
 namespace Game.HotUpdate
 {
@@ -45,12 +46,12 @@ namespace Game.HotUpdate
 
         #region IGameInventoryService 接口实现 & 查询操作
 
-        public cfg.Item_Cfg GetConfig(int itemId)
+        public Item GetConfig(int itemId)
         {
             // 确保 ConfigManager 已初始化且表已加载
             if (ConfigManager.Instance == null || ConfigManager.Instance.Tables == null)
                 return null;
-            return ConfigManager.Instance.Tables.ItemCfg.GetOrDefault(itemId);
+            return ConfigManager.Instance.Tables.TbItem.GetOrDefault(itemId);
         }
 
         public long GetItemCount(int itemId)

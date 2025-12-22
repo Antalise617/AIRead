@@ -25,8 +25,11 @@ namespace Game.HotUpdate
 
         private void OnInfoClick()
         {
+
+            // 升级功能暂无
+            UnityEngine.Debug.Log("功能暂未实现");
             // 1. 打开信息面板
-            UIManager.Instance.ShowPanelAsync<BuildingServicePanel>("BuildingServicePanel").Forget();
+            UIManager.Instance.ShowPanelAsync<BuildingProductionPanel>("BuildingProductionPanel").Forget();
             // 2. 关闭当前小控件
             CloseSelf();
         }

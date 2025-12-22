@@ -26,7 +26,7 @@ namespace Game.HotUpdate
         private void OnInfoClick()
         {
             // 1. 打开信息面板
-            //UIManager.Instance.ShowPanelAsync<IslandInfoPanel>("IslandInfoPanel").Forget();
+            UIManager.Instance.ShowPanelAsync<IslandInfoPanel>("IslandInfoPanel").Forget();
             // 2. 关闭当前小控件
             CloseSelf();
         }

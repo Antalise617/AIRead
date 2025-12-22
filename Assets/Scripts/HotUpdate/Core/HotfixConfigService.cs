@@ -1,6 +1,6 @@
 using GameFramework.Core;
 using Unity.Mathematics;
-using cfg.building;
+using cfg;
 using GameFramework.ECS.Components;
 using GameFramework.ECS.Systems; // 引用 AOT 中的 IslandData
 using System.Collections.Generic;
@@ -11,20 +11,20 @@ namespace HotUpdate.Core
     {
         public int3 GetBuildingSize(int configId)
         {
-            var cfg = ConfigManager.Instance.Tables.BuildingCfg.Get(configId);
+            var cfg = ConfigManager.Instance.Tables.TbBuild.Get(configId);
             // 【修改点】将 cfg.Size.X/Y 改为 cfg.Length 和 cfg.Width
             return cfg != null ? new int3(cfg.Length, 1, cfg.Width) : new int3(1, 1, 1);
         }
 
         public int3 GetIslandSize(int configId)
         {
-            var cfg = ConfigManager.Instance.Tables.IslandCfg.Get(configId);
+            var cfg = ConfigManager.Instance.Tables.TbIsland.Get(configId);
             return cfg != null ? new int3(cfg.Length, cfg.Height, cfg.Width) : new int3(1, 1, 1);
         }
 
         public int GetIslandAirSpace(int configId)
         {
-            return ConfigManager.Instance.Tables.IslandCfg.Get(configId)?.AirHeight ?? 0;
+            return ConfigManager.Instance.Tables.TbIsland.Get(configId)?.AirHeight ?? 0;
         }
 
         public string GetResourceName(int configId, int typeInt)
@@ -33,17 +33,17 @@ namespace HotUpdate.Core
             if (ConfigManager.Instance.Tables == null) return null;
             switch (type)
             {
-                case PlacementType.Island: return ConfigManager.Instance.Tables.IslandCfg.Get(configId)?.ResourceName;
-                case PlacementType.Building: return ConfigManager.Instance.Tables.BuildingCfg.Get(configId)?.ResourceName;
-                case PlacementType.Bridge: return ConfigManager.Instance.Tables.BridgeCfg.Get(configId)?.ResourceName;
+                case PlacementType.Island: return ConfigManager.Instance.Tables.TbIsland.Get(configId)?.ResourceName;
+                case PlacementType.Building: return ConfigManager.Instance.Tables.TbBuild.Get(configId)?.ResourceName;
+                case PlacementType.Bridge: return ConfigManager.Instance.Tables.TbBridgeConfig.Get(configId)?.ResourceName;
             }
             return null;
         }
 
         public int GetBuildingFunctionType(int configId)
         {
-            var cfg = ConfigManager.Instance.Tables.BuildingCfg.Get(configId);
-            return cfg != null ? (int)cfg.FunctionType : 0;
+            var cfg = ConfigManager.Instance.Tables.TbBuild.Get(configId);
+            return cfg != null ? (int)cfg.BuildingType : 0;
         }
 
         public float2 GetVisitorCenterConfig(int configId)
@@ -54,7 +54,7 @@ namespace HotUpdate.Core
         // 关键：构建 AOT 需要的 IslandData 对象
         public IslandData GetIslandData(int configId)
         {
-            var cfg = ConfigManager.Instance.Tables.IslandCfg.Get(configId);
+            var cfg = ConfigManager.Instance.Tables.TbIsland.Get(configId);
             if (cfg == null) return null;
 
             var data = new IslandData
@@ -90,11 +90,11 @@ namespace HotUpdate.Core
             if (tables == null) return false;
 
             // 1. 先通过 buildingId 获取建筑配置
-            var buildingData = tables.BuildingCfg.GetOrDefault(buildingId);
+            var buildingData = tables.TbBuild.GetOrDefault(buildingId);
             if (buildingData == null) return false;
 
             // 2. 【核心修复】获取建筑配置里的 FunctionId (比如油田的FunctionId是210001)
-            int factoryId = buildingData.FunctionId;
+            int factoryId = (int)buildingData.BuildingSubtype;
 
             // 3. 使用 factoryId 去查工厂配置表，而不是用 buildingId
             var factoryData = tables.FactoryCfg.GetOrDefault(factoryId);
@@ -139,7 +139,7 @@ namespace HotUpdate.Core
             if (tables == null) return info;
 
             // 1. 先通过 BuildingCfg 找到 FunctionId (例如 200006 -> FunctionId: 220002)
-            var buildingCfg = tables.BuildingCfg.GetOrDefault(buildingId);
+            var buildingCfg = tables.TbBuild.GetOrDefault(buildingId);
             if (buildingCfg == null) return info;
 
             // 2. 检查类型是否为服务类 (FunctionType.Shop = 5 根据你的枚举)

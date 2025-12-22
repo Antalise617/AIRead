@@ -197,7 +197,7 @@ namespace GameFramework.ECS
             {
                 var renderMeshArray = new RenderMeshArray(new[] { material }, new[] { mesh });
                 var renderMeshDescription = new RenderMeshDescription(
-                    shadowCastingMode: ShadowCastingMode.Off,
+                    shadowCastingMode: ShadowCastingMode.On,
                     receiveShadows: true
                 );
 

@@ -15,26 +15,26 @@ namespace cfg
 {
 public partial class Tables
 {
-    public Framework.ChapterCfg ChapterCfg {get; private set; }
-    public IslandCfg IslandCfg {get; private set; }
-    public BuildingCfg BuildingCfg {get; private set; }
-    public BridgeCfg BridgeCfg {get; private set; }
-    public GuideCfg GuideCfg {get; private set; }
-    public ItemCfg ItemCfg {get; private set; }
-    public FactoryCfg FactoryCfg {get; private set; }
-    public ServiceCfg ServiceCfg {get; private set; }
+    public zs.TbBuild TbBuild {get; private set; }
+    public zs.TbBuildingLevel TbBuildingLevel {get; private set; }
+    public zs.TbItem TbItem {get; private set; }
+    public zs.TbIsland TbIsland {get; private set; }
+    public zs.TbIslandLevel TbIslandLevel {get; private set; }
+    public zs.TbBuildingUnlock TbBuildingUnlock {get; private set; }
+    public zs.TbGuideStep TbGuideStep {get; private set; }
+    public zs.TbBridgeConfig TbBridgeConfig {get; private set; }
 
     /// public Tables(System.Func<string, ByteBuf> loader)
     public Tables()
     {
-        ///        /// ChapterCfg = new Framework.ChapterCfg(loader("framework_chaptercfg"));
-        ///        /// IslandCfg = new IslandCfg(loader("islandcfg"));
-        ///        /// BuildingCfg = new BuildingCfg(loader("buildingcfg"));
-        ///        /// BridgeCfg = new BridgeCfg(loader("bridgecfg"));
-        ///        /// GuideCfg = new GuideCfg(loader("guidecfg"));
-        ///        /// ItemCfg = new ItemCfg(loader("itemcfg"));
-        ///        /// FactoryCfg = new FactoryCfg(loader("factorycfg"));
-        ///        /// ServiceCfg = new ServiceCfg(loader("servicecfg"));
+        ///        /// TbBuild = new zs.TbBuild(loader("zs_tbbuild"));
+        ///        /// TbBuildingLevel = new zs.TbBuildingLevel(loader("zs_tbbuildinglevel"));
+        ///        /// TbItem = new zs.TbItem(loader("zs_tbitem"));
+        ///        /// TbIsland = new zs.TbIsland(loader("zs_tbisland"));
+        ///        /// TbIslandLevel = new zs.TbIslandLevel(loader("zs_tbislandlevel"));
+        ///        /// TbBuildingUnlock = new zs.TbBuildingUnlock(loader("zs_tbbuildingunlock"));
+        ///        /// TbGuideStep = new zs.TbGuideStep(loader("zs_tbguidestep"));
+        ///        /// TbBridgeConfig = new zs.TbBridgeConfig(loader("zs_tbbridgeconfig"));
         ///        /// ResolveRef();
     }
 
@@ -44,43 +44,43 @@ public partial class Tables
 		List<UniTask> list = new List<UniTask>();
 		list.Add(UniTask.Create(async () =>
 		{
-			ChapterCfg = new Framework.ChapterCfg(await loader("framework_chaptercfg")); 
-			tables.Add("Framework.ChapterCfg", ChapterCfg);
+			TbBuild = new zs.TbBuild(await loader("zs_tbbuild")); 
+			tables.Add("zs.TbBuild", TbBuild);
 		}));
 		list.Add(UniTask.Create(async () =>
 		{
-			IslandCfg = new IslandCfg(await loader("islandcfg")); 
-			tables.Add("IslandCfg", IslandCfg);
+			TbBuildingLevel = new zs.TbBuildingLevel(await loader("zs_tbbuildinglevel")); 
+			tables.Add("zs.TbBuildingLevel", TbBuildingLevel);
 		}));
 		list.Add(UniTask.Create(async () =>
 		{
-			BuildingCfg = new BuildingCfg(await loader("buildingcfg")); 
-			tables.Add("BuildingCfg", BuildingCfg);
+			TbItem = new zs.TbItem(await loader("zs_tbitem")); 
+			tables.Add("zs.TbItem", TbItem);
 		}));
 		list.Add(UniTask.Create(async () =>
 		{
-			BridgeCfg = new BridgeCfg(await loader("bridgecfg")); 
-			tables.Add("BridgeCfg", BridgeCfg);
+			TbIsland = new zs.TbIsland(await loader("zs_tbisland")); 
+			tables.Add("zs.TbIsland", TbIsland);
 		}));
 		list.Add(UniTask.Create(async () =>
 		{
-			GuideCfg = new GuideCfg(await loader("guidecfg")); 
-			tables.Add("GuideCfg", GuideCfg);
+			TbIslandLevel = new zs.TbIslandLevel(await loader("zs_tbislandlevel")); 
+			tables.Add("zs.TbIslandLevel", TbIslandLevel);
 		}));
 		list.Add(UniTask.Create(async () =>
 		{
-			ItemCfg = new ItemCfg(await loader("itemcfg")); 
-			tables.Add("ItemCfg", ItemCfg);
+			TbBuildingUnlock = new zs.TbBuildingUnlock(await loader("zs_tbbuildingunlock")); 
+			tables.Add("zs.TbBuildingUnlock", TbBuildingUnlock);
 		}));
 		list.Add(UniTask.Create(async () =>
 		{
-			FactoryCfg = new FactoryCfg(await loader("factorycfg")); 
-			tables.Add("FactoryCfg", FactoryCfg);
+			TbGuideStep = new zs.TbGuideStep(await loader("zs_tbguidestep")); 
+			tables.Add("zs.TbGuideStep", TbGuideStep);
 		}));
 		list.Add(UniTask.Create(async () =>
 		{
-			ServiceCfg = new ServiceCfg(await loader("servicecfg")); 
-			tables.Add("ServiceCfg", ServiceCfg);
+			TbBridgeConfig = new zs.TbBridgeConfig(await loader("zs_tbbridgeconfig")); 
+			tables.Add("zs.TbBridgeConfig", TbBridgeConfig);
 		}));
 
 		await UniTask.WhenAll(list);
@@ -90,14 +90,14 @@ public partial class Tables
     
     private void ResolveRef()
     {
-        ChapterCfg.ResolveRef(this);
-        IslandCfg.ResolveRef(this);
-        BuildingCfg.ResolveRef(this);
-        BridgeCfg.ResolveRef(this);
-        GuideCfg.ResolveRef(this);
-        ItemCfg.ResolveRef(this);
-        FactoryCfg.ResolveRef(this);
-        ServiceCfg.ResolveRef(this);
+        TbBuild.ResolveRef(this);
+        TbBuildingLevel.ResolveRef(this);
+        TbItem.ResolveRef(this);
+        TbIsland.ResolveRef(this);
+        TbIslandLevel.ResolveRef(this);
+        TbBuildingUnlock.ResolveRef(this);
+        TbGuideStep.ResolveRef(this);
+        TbBridgeConfig.ResolveRef(this);
     }
 }
 

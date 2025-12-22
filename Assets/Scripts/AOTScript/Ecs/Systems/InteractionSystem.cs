@@ -7,6 +7,7 @@ using Cysharp.Threading.Tasks;
 using GameFramework.Managers;
 using GameFramework.Core;
 using RaycastHit = Unity.Physics.RaycastHit;
+using UnityEngine.EventSystems; // [添加这一行]
 
 namespace GameFramework.ECS.Systems
 {
@@ -36,6 +37,11 @@ namespace GameFramework.ECS.Systems
 
             if (Input.GetMouseButtonDown(0))
             {
+                // [关键修复] 如果点击的是 UI 元素，则直接退出，不执行后续的 3D 选中逻辑
+                if (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject())
+                {
+                    return;
+                }
                 HandleSelection();
             }
         }

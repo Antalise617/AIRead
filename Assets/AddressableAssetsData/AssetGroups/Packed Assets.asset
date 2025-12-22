@@ -137,6 +137,11 @@ MonoBehaviour:
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: aa85e4049f76eb24ab9b976e0e3d86d3
+    m_Address: IslandInfoPanel
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: b17e2b2c000f5ce408d7b9e87dbf6f50
     m_Address: Assets/Prefabs/UICanvas.prefab
     m_ReadOnly: 0
