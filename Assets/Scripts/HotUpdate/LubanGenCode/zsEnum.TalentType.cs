@@ -25,6 +25,38 @@ namespace cfg.zsEnum
         /// 提升建筑储量上限
         /// </summary>
         StorageCapRate = 3,
+        /// <summary>
+        /// 能够生产价格更贵的“辣子鸡”
+        /// </summary>
+        SpicyChicken = 4,
+        /// <summary>
+        /// 提高体验型建筑的门票价格
+        /// </summary>
+        TicketPrice = 5,
+        /// <summary>
+        /// 提高仓库上限
+        /// </summary>
+        WarehouseMax = 6,
+        /// <summary>
+        /// 降低建筑的升级时间
+        /// </summary>
+        BuildingTime = 7,
+        /// <summary>
+        /// 降低建筑的升级消耗
+        /// </summary>
+        BuildingConsume = 8,
+        /// <summary>
+        /// 增加一个新的建筑队列
+        /// </summary>
+        BuildingQueue = 9,
+        /// <summary>
+        /// 降低飞艇的油耗
+        /// </summary>
+        AirshipCrude = 10,
+        /// <summary>
+        /// 降低商品生产需要的时间
+        /// </summary>
+        ProductionTime = 11,
     }
 
 } 

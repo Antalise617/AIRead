@@ -18,7 +18,13 @@ public partial class Tables
     public zs.TbBuild TbBuild {get; private set; }
     public zs.TbBuildingLevel TbBuildingLevel {get; private set; }
     public zs.TbItem TbItem {get; private set; }
+    public zs.TbMapBoundary TbMapBoundary {get; private set; }
+    public zs.TbQuestCondition TbQuestCondition {get; private set; }
+    public zs.TbTask TbTask {get; private set; }
     public zs.TbGameConfig TbGameConfig {get; private set; }
+    public zs.TbProsperity TbProsperity {get; private set; }
+    public zs.TbEmployee TbEmployee {get; private set; }
+    public zs.TbTourist TbTourist {get; private set; }
     public zs.TbIsland TbIsland {get; private set; }
     public zs.TbIslandLevel TbIslandLevel {get; private set; }
     public zs.TbBuildingUnlock TbBuildingUnlock {get; private set; }
@@ -31,7 +37,13 @@ public partial class Tables
         ///        /// TbBuild = new zs.TbBuild(loader("zs_tbbuild"));
         ///        /// TbBuildingLevel = new zs.TbBuildingLevel(loader("zs_tbbuildinglevel"));
         ///        /// TbItem = new zs.TbItem(loader("zs_tbitem"));
+        ///        /// TbMapBoundary = new zs.TbMapBoundary(loader("zs_tbmapboundary"));
+        ///        /// TbQuestCondition = new zs.TbQuestCondition(loader("zs_tbquestcondition"));
+        ///        /// TbTask = new zs.TbTask(loader("zs_tbtask"));
         ///        /// TbGameConfig = new zs.TbGameConfig(loader("zs_tbgameconfig"));
+        ///        /// TbProsperity = new zs.TbProsperity(loader("zs_tbprosperity"));
+        ///        /// TbEmployee = new zs.TbEmployee(loader("zs_tbemployee"));
+        ///        /// TbTourist = new zs.TbTourist(loader("zs_tbtourist"));
         ///        /// TbIsland = new zs.TbIsland(loader("zs_tbisland"));
         ///        /// TbIslandLevel = new zs.TbIslandLevel(loader("zs_tbislandlevel"));
         ///        /// TbBuildingUnlock = new zs.TbBuildingUnlock(loader("zs_tbbuildingunlock"));
@@ -61,8 +73,38 @@ public partial class Tables
 		}));
 		list.Add(UniTask.Create(async () =>
 		{
+			TbMapBoundary = new zs.TbMapBoundary(await loader("zs_tbmapboundary")); 
+			tables.Add("zs.TbMapBoundary", TbMapBoundary);
+		}));
+		list.Add(UniTask.Create(async () =>
+		{
+			TbQuestCondition = new zs.TbQuestCondition(await loader("zs_tbquestcondition")); 
+			tables.Add("zs.TbQuestCondition", TbQuestCondition);
+		}));
+		list.Add(UniTask.Create(async () =>
+		{
+			TbTask = new zs.TbTask(await loader("zs_tbtask")); 
+			tables.Add("zs.TbTask", TbTask);
+		}));
+		list.Add(UniTask.Create(async () =>
+		{
 			TbGameConfig = new zs.TbGameConfig(await loader("zs_tbgameconfig")); 
 			tables.Add("zs.TbGameConfig", TbGameConfig);
+		}));
+		list.Add(UniTask.Create(async () =>
+		{
+			TbProsperity = new zs.TbProsperity(await loader("zs_tbprosperity")); 
+			tables.Add("zs.TbProsperity", TbProsperity);
+		}));
+		list.Add(UniTask.Create(async () =>
+		{
+			TbEmployee = new zs.TbEmployee(await loader("zs_tbemployee")); 
+			tables.Add("zs.TbEmployee", TbEmployee);
+		}));
+		list.Add(UniTask.Create(async () =>
+		{
+			TbTourist = new zs.TbTourist(await loader("zs_tbtourist")); 
+			tables.Add("zs.TbTourist", TbTourist);
 		}));
 		list.Add(UniTask.Create(async () =>
 		{
@@ -100,7 +142,13 @@ public partial class Tables
         TbBuild.ResolveRef(this);
         TbBuildingLevel.ResolveRef(this);
         TbItem.ResolveRef(this);
+        TbMapBoundary.ResolveRef(this);
+        TbQuestCondition.ResolveRef(this);
+        TbTask.ResolveRef(this);
         TbGameConfig.ResolveRef(this);
+        TbProsperity.ResolveRef(this);
+        TbEmployee.ResolveRef(this);
+        TbTourist.ResolveRef(this);
         TbIsland.ResolveRef(this);
         TbIslandLevel.ResolveRef(this);
         TbBuildingUnlock.ResolveRef(this);

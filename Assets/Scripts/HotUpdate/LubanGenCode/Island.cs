@@ -88,15 +88,15 @@ public sealed partial class Island : Luban.BeanBase
     public override string ToString()
     {
         return "{ "
-        + "id:" + Id + ","
-        + "name:" + Name + ","
-        + "resourceName:" + ResourceName + ","
-        + "length:" + Length + ","
-        + "width:" + Width + ","
-        + "height:" + Height + ","
-        + "airHeight:" + AirHeight + ","
-        + "buildArea:" + Luban.StringUtil.CollectionToString(BuildArea) + ","
-        + "attachmentPoint:" + Luban.StringUtil.CollectionToString(AttachmentPoint) + ","
+        + "Id:" + Id + ","
+        + "Name:" + Name + ","
+        + "ResourceName:" + ResourceName + ","
+        + "Length:" + Length + ","
+        + "Width:" + Width + ","
+        + "Height:" + Height + ","
+        + "AirHeight:" + AirHeight + ","
+        + "BuildArea:" + Luban.StringUtil.CollectionToString(BuildArea) + ","
+        + "AttachmentPoint:" + Luban.StringUtil.CollectionToString(AttachmentPoint) + ","
         + "}";
     }
 }

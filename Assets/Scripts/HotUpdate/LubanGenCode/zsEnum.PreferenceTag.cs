@@ -18,33 +18,81 @@ namespace cfg.zsEnum
         /// </summary>
         Empty = 0,
         /// <summary>
-        /// 美食
+        /// 烧烤
         /// </summary>
-        Food = 1,
+        Barbecue = 1,
+        /// <summary>
+        /// 中餐
+        /// </summary>
+        ChineseFood = 2,
+        /// <summary>
+        /// 面食
+        /// </summary>
+        Noodles = 3,
+        /// <summary>
+        /// 小吃
+        /// </summary>
+        Snack = 4,
+        /// <summary>
+        /// 咖啡
+        /// </summary>
+        Coffee = 5,
+        /// <summary>
+        /// 奶茶
+        /// </summary>
+        MilkTea = 6,
+        /// <summary>
+        /// 可乐
+        /// </summary>
+        Cola = 7,
+        /// <summary>
+        /// 密室
+        /// </summary>
+        BackRoom = 8,
+        /// <summary>
+        /// 团建
+        /// </summary>
+        TeamBuilding = 9,
+        /// <summary>
+        /// 游戏
+        /// </summary>
+        Games = 10,
+        /// <summary>
+        /// 旅馆
+        /// </summary>
+        Hotel = 11,
+        /// <summary>
+        /// 酒饮
+        /// </summary>
+        Drink = 12,
+        /// <summary>
+        /// 养生
+        /// </summary>
+        Regimen = 13,
+        /// <summary>
+        /// 游乐
+        /// </summary>
+        Play = 14,
+        /// <summary>
+        /// 观影
+        /// </summary>
+        Movie = 15,
+        /// <summary>
+        /// 嘉年华
+        /// </summary>
+        Carnival = 16,
+        /// <summary>
+        /// 化妆
+        /// </summary>
+        Makeup = 17,
+        /// <summary>
+        /// 珠宝
+        /// </summary>
+        Jewelry = 18,
         /// <summary>
         /// 观景
         /// </summary>
-        Sightseeing = 2,
-        /// <summary>
-        /// 冒险
-        /// </summary>
-        Adventure = 3,
-        /// <summary>
-        /// 休闲
-        /// </summary>
-        Leisure = 4,
-        /// <summary>
-        /// 娱乐
-        /// </summary>
-        Entertainment = 5,
-        /// <summary>
-        /// 社交
-        /// </summary>
-        Social = 6,
-        /// <summary>
-        /// 文化
-        /// </summary>
-        Culture = 7,
+        Viewing = 19,
     }
 
 } 

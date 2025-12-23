@@ -1357,7 +1357,7 @@ GameObject:
   m_Component:
   - component: {fileID: 5259449493766418410}
   m_Layer: 5
-  m_Name: Info
+  m_Name: m_obj_SurfaceInfo
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -2055,8 +2055,8 @@ MonoBehaviour:
       m_Calls: []
   m_text: "\u7A7A"
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 980f98854de577e499db9658dadf272c, type: 2}
-  m_sharedMaterial: {fileID: 963727675083752210, guid: 980f98854de577e499db9658dadf272c,
+  m_fontAsset: {fileID: 11400000, guid: 0b8f72d7ae6776448866ee7db7aa0bf1, type: 2}
+  m_sharedMaterial: {fileID: 16753054255301124, guid: 0b8f72d7ae6776448866ee7db7aa0bf1,
     type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
@@ -3810,8 +3810,8 @@ MonoBehaviour:
       m_Calls: []
   m_text: "\u5730\u5F62\u52A0\u6210"
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 980f98854de577e499db9658dadf272c, type: 2}
-  m_sharedMaterial: {fileID: 963727675083752210, guid: 980f98854de577e499db9658dadf272c,
+  m_fontAsset: {fileID: 11400000, guid: 0b8f72d7ae6776448866ee7db7aa0bf1, type: 2}
+  m_sharedMaterial: {fileID: 16753054255301124, guid: 0b8f72d7ae6776448866ee7db7aa0bf1,
     type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
@@ -6743,6 +6743,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f048c6356fb9cc442ae8d4f7a916274d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  m_tmp_IslandName: {fileID: 0}
+  m_tmp_BonusInfo: {fileID: 0}
+  m_obj_SurfaceInfo: {fileID: 0}
+  _spriteOutOfRange: {fileID: 21300000, guid: 0de1dc03698f93746b81e081270cb49b, type: 3}
+  _spriteUnbuilt: {fileID: 21300000, guid: 3d2cad3bb60b53d4fa2fe33523b10fc8, type: 3}
+  _spriteBuilt: {fileID: 21300000, guid: fc3ef6b014f70e04d9978056aa16250a, type: 3}
 --- !u!1 &7679023448713222226
 GameObject:
   m_ObjectHideFlags: 0
@@ -7268,8 +7274,8 @@ MonoBehaviour:
       m_Calls: []
   m_text: "\u5730\u5757\u4F7F\u7528\u60C5\u51B5"
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 980f98854de577e499db9658dadf272c, type: 2}
-  m_sharedMaterial: {fileID: 963727675083752210, guid: 980f98854de577e499db9658dadf272c,
+  m_fontAsset: {fileID: 11400000, guid: 0b8f72d7ae6776448866ee7db7aa0bf1, type: 2}
+  m_sharedMaterial: {fileID: 16753054255301124, guid: 0b8f72d7ae6776448866ee7db7aa0bf1,
     type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
@@ -7573,7 +7579,7 @@ GameObject:
   - component: {fileID: 1340976052764855680}
   - component: {fileID: 7145260746119467737}
   m_Layer: 5
-  m_Name: Text (TMP)
+  m_Name: m_tmp_BonusInfo
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -7628,8 +7634,8 @@ MonoBehaviour:
       m_Calls: []
   m_text: "\u6548\u7387"
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 980f98854de577e499db9658dadf272c, type: 2}
-  m_sharedMaterial: {fileID: 963727675083752210, guid: 980f98854de577e499db9658dadf272c,
+  m_fontAsset: {fileID: 11400000, guid: 0b8f72d7ae6776448866ee7db7aa0bf1, type: 2}
+  m_sharedMaterial: {fileID: 16753054255301124, guid: 0b8f72d7ae6776448866ee7db7aa0bf1,
     type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
@@ -8008,7 +8014,7 @@ GameObject:
   - component: {fileID: 4288432275360394922}
   - component: {fileID: 1259570752090998819}
   m_Layer: 5
-  m_Name: m_tmp_BuildingName
+  m_Name: m_tmp_IslandName
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -8063,8 +8069,8 @@ MonoBehaviour:
       m_Calls: []
   m_text: "\u4E2D\u578B\u8349\u539F\u5C9B\u5C7F"
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 980f98854de577e499db9658dadf272c, type: 2}
-  m_sharedMaterial: {fileID: 963727675083752210, guid: 980f98854de577e499db9658dadf272c,
+  m_fontAsset: {fileID: 11400000, guid: 0b8f72d7ae6776448866ee7db7aa0bf1, type: 2}
+  m_sharedMaterial: {fileID: 16753054255301124, guid: 0b8f72d7ae6776448866ee7db7aa0bf1,
     type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
