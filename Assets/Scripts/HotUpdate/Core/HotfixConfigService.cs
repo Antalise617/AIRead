@@ -2,7 +2,7 @@ using GameFramework.Core;
 using Unity.Mathematics;
 using cfg;
 using GameFramework.ECS.Components;
-using GameFramework.ECS.Systems; // 引用 AOT 中的 IslandData
+using GameFramework.ECS.Systems;
 using System.Collections.Generic;
 
 namespace HotUpdate.Core
@@ -12,7 +12,7 @@ namespace HotUpdate.Core
         public int3 GetBuildingSize(int configId)
         {
             var cfg = ConfigManager.Instance.Tables.TbBuild.Get(configId);
-            // 【修改点】将 cfg.Size.X/Y 改为 cfg.Length 和 cfg.Width
+            // 字段对应：Length(长), Width(宽)
             return cfg != null ? new int3(cfg.Length, 1, cfg.Width) : new int3(1, 1, 1);
         }
 
@@ -33,6 +33,7 @@ namespace HotUpdate.Core
             if (ConfigManager.Instance.Tables == null) return null;
             switch (type)
             {
+                // 字段对应：ResourceName
                 case PlacementType.Island: return ConfigManager.Instance.Tables.TbIsland.Get(configId)?.ResourceName;
                 case PlacementType.Building: return ConfigManager.Instance.Tables.TbBuild.Get(configId)?.ResourceName;
                 case PlacementType.Bridge: return ConfigManager.Instance.Tables.TbBridgeConfig.Get(configId)?.ResourceName;
@@ -43,15 +44,15 @@ namespace HotUpdate.Core
         public int GetBuildingFunctionType(int configId)
         {
             var cfg = ConfigManager.Instance.Tables.TbBuild.Get(configId);
+            // 字段对应：BuildingType (枚举)
             return cfg != null ? (int)cfg.BuildingType : 0;
         }
 
         public float2 GetVisitorCenterConfig(int configId)
         {
-            return new float2(5, 2.0f); // 默认配置
+            return new float2(5, 2.0f);
         }
 
-        // 关键：构建 AOT 需要的 IslandData 对象
         public IslandData GetIslandData(int configId)
         {
             var cfg = ConfigManager.Instance.Tables.TbIsland.Get(configId);
@@ -68,6 +69,7 @@ namespace HotUpdate.Core
                 AttachmentPoint = new List<int2>()
             };
 
+            // 处理 BuildArea 列表 (List<List<int>>)
             if (cfg.BuildArea != null)
             {
                 foreach (var p in cfg.BuildArea)
@@ -83,45 +85,42 @@ namespace HotUpdate.Core
             return data;
         }
 
+        /// <summary>
+        /// 【核心修改】从建筑等级表中获取生产配置
+        /// </summary>
         public bool TryGetFactoryConfig(int buildingId, out ProductionComponent config)
         {
             config = default;
             var tables = ConfigManager.Instance.Tables;
             if (tables == null) return false;
 
-            // 1. 先通过 buildingId 获取建筑配置
-            var buildingData = tables.TbBuild.GetOrDefault(buildingId);
-            if (buildingData == null) return false;
+            // 1. 生产数据现在存放在 TbBuildingLevel 中
+            // 假设 buildingId 对应等级表的 ID，且目前默认取 1 级或特定的条目
+            // 注意：等级表通常是复合 Key (ID+Level) 或者 ID 代表特定等级的行
+            var factoryData = tables.TbBuildingLevel.GetOrDefault(buildingId);
 
-            // 2. 【核心修复】获取建筑配置里的 FunctionId (比如油田的FunctionId是210001)
-            int factoryId = (int)buildingData.BuildingSubtype;
-
-            // 3. 使用 factoryId 去查工厂配置表，而不是用 buildingId
-            var factoryData = tables.FactoryCfg.GetOrDefault(factoryId);
-
-            // 如果没找到，说明配表有误或该建筑没配生产数据
             if (factoryData == null)
             {
-                // UnityEngine.Debug.LogWarning($"建筑 {buildingId} 的 FunctionId {factoryId} 在 FactoryCfg 中找不到对应配置！");
                 return false;
             }
 
-            // 4. 映射数据
+            // 2. 映射产出与消耗数据 (假设 InputItem 和 OutputItem 是 List<List<int>> 结构)
             config = new ProductionComponent
             {
-                // 注意：InputItem 是个列表，这里只取第一组作为演示，具体根据你的需求改为遍历或取特定索引
-                InputItemId = (factoryData.InputItem != null && factoryData.InputItem.Count > 0 && factoryData.InputItem[0].Count > 0)
-                              ? factoryData.InputItem[0][0] : 0,
-                InputCount = (factoryData.InputItem != null && factoryData.InputItem.Count > 0 && factoryData.InputItem[0].Count > 1)
-                              ? factoryData.InputItem[0][1] : 0,
+                // 输入：取第一个列表的第一个元素为ID，第二个为数量
+                InputItemId = (factoryData.ItemCost != null && factoryData.ItemCost.Count > 0 && factoryData.ItemCost[0].Count > 0)
+                                ? factoryData.ItemCost[0][0] : 0,
+                InputCount = (factoryData.ItemCost != null && factoryData.ItemCost.Count > 0 && factoryData.ItemCost[0].Count > 1)
+                                ? factoryData.ItemCost[0][1] : 0,
 
-                OutputItemId = (factoryData.OutputItem != null && factoryData.OutputItem.Count > 0 && factoryData.OutputItem[0].Count > 0)
-                               ? factoryData.OutputItem[0][0] : 0,
-                OutputCount = (factoryData.OutputItem != null && factoryData.OutputItem.Count > 0 && factoryData.OutputItem[0].Count > 1)
-                               ? factoryData.OutputItem[0][1] : 0,
+                // 输出：取第一个列表的第一个元素为ID，第二个为数量
+                OutputItemId = (factoryData.OutPut != null && factoryData.OutPut.Count > 0 && factoryData.OutPut[0].Count > 0)
+                                 ? factoryData.OutPut[0][0] : 0,
+                OutputCount = (factoryData.OutPut != null && factoryData.OutPut.Count > 0 && factoryData.OutPut[0].Count > 1)
+                                 ? factoryData.OutPut[0][1] : 0,
 
-                ProductionInterval = factoryData.Time,
-                MaxReserves = factoryData.MaxReserves,
+                ProductionInterval = factoryData.OutputCycle,       // 对应等级表中的 Time 字段
+                MaxReserves = 5000,       // 对应等级表中的 MaxReserves 字段
 
                 // 运行时初始状态
                 IsActive = true,
@@ -131,60 +130,33 @@ namespace HotUpdate.Core
 
             return true;
         }
+
         public ServiceBuildingInfo GetServiceConfig(int buildingId)
         {
             var info = new ServiceBuildingInfo { Found = false };
             var tables = ConfigManager.Instance.Tables;
-
             if (tables == null) return info;
 
-            // 1. 先通过 BuildingCfg 找到 FunctionId (例如 200006 -> FunctionId: 220002)
             var buildingCfg = tables.TbBuild.GetOrDefault(buildingId);
             if (buildingCfg == null) return info;
 
-            // 2. 检查类型是否为服务类 (FunctionType.Shop = 5 根据你的枚举)
-            // 注意：你的CSV里 coffee 是 FunctionType 5
-            if (buildingCfg.FunctionType != cfg.building.FunctionType.Shop)
+            // 根据新配表的 FunctionType 枚举判断
+            if (buildingCfg.BuildingType != cfg.zsEnum.BuildingType.Service)
                 return info;
 
-            // 3. 通过 FunctionId 查 BuildingServiceConfig
-            // 假设你的表名生成代码为 BuildingServiceConfig (根据文件名 building_serviceconfig.xlsx)
-            // 如果 Luban 生成的表名不同，请根据实际生成的类名调整 (例如 Tables.ServiceCfg)
-            // 这里假设通过 buildingCfg.FunctionId 关联
-
-            // 这是一个假设的访问方式，具体取决于你的 Luban 设定
-            // 比如: var serviceCfg = tables.BuildingServiceCfg.GetOrDefault(buildingCfg.FunctionId);
-
-            // 手动解析 outputItem (csv: "104;10")
-            // Luban 通常会生成 ItemId 和 Count 的结构，这里做简化处理逻辑
-
-            /* 注意：由于我无法看到生成的 BuildingServiceCfg 具体代码，
-               以下逻辑基于你的 CSV 结构进行模拟实现。
-            */
-
-            // 模拟获取到的配置数据
-            int serviceId = buildingCfg.FunctionId;
-
-            // 尝试获取行数据 (请替换为实际的 Luban 生成代码调用)
-            // var serviceRow = tables.BuildingServiceCfg.GetOrDefault(serviceId);
-
-            // 临时硬编码模拟查表过程以展示逻辑结构 (实际请用上面的 GetOrDefault)
-            // 220001: 解密, 220002: 咖啡, 220003: 天文台
-            if (serviceId == 220001) { SetInfo(ref info, 5f, 10, 1, 104, 10); }
-            else if (serviceId == 220002) { SetInfo(ref info, 5f, 10, 2, 104, 10); } // 咖啡同时服务2人
-            else if (serviceId == 220003) { SetInfo(ref info, 5f, 5, 1, 104, 10); }
+            // 服务类数据建议也从 TbBuildingLevel 中读取相应字段
+            var levelData = tables.TbBuildingLevel.GetOrDefault(buildingId);
+            if (levelData != null)
+            {
+                info.Found = true;
+                info.ServiceTime = levelData.DwellTime;
+                info.QueueCapacity = 10; // 默认值
+                info.MaxConcurrentNum = 1; // 默认值
+                info.OutputItemId = (levelData.OutPut.Count > 0) ? levelData.OutPut[0][0] : 0;
+                info.OutputItemCount = (levelData.OutPut.Count > 0) ? levelData.OutPut[0][1] : 0;
+            }
 
             return info;
-        }
-
-        private void SetInfo(ref ServiceBuildingInfo info, float time, int queue, int concurrent, int outId, int outCount)
-        {
-            info.Found = true;
-            info.ServiceTime = time;
-            info.QueueCapacity = queue;
-            info.MaxConcurrentNum = concurrent;
-            info.OutputItemId = outId;
-            info.OutputItemCount = outCount;
         }
     }
 }

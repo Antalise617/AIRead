@@ -18,7 +18,7 @@ MonoBehaviour:
   m_GUID: 33312e7ee8c7d3a4a9f77a10df97c1a7
   m_SerializeEntries:
   - m_GUID: 034934b910676d945b211bf8e085f98f
-    m_Address: building_200002
+    m_Address: building_10201
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
@@ -43,7 +43,7 @@ MonoBehaviour:
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 1a2c51d475467854cba971da77534515
-    m_Address: building_200007
+    m_Address: building_50301
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
@@ -58,7 +58,7 @@ MonoBehaviour:
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 390a911407e4b444bb073d04e4542527
-    m_Address: building_200001
+    m_Address: building_10101
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
@@ -68,7 +68,7 @@ MonoBehaviour:
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 44606e7280adf7f47a2a0ede882dd36a
-    m_Address: building_200006
+    m_Address: building_40401
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
@@ -78,7 +78,7 @@ MonoBehaviour:
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 5af250acdbf386e40993ca34dc3f343b
-    m_Address: building_200003
+    m_Address: building_10301
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
@@ -98,7 +98,7 @@ MonoBehaviour:
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 6584c53e38fd6b24aa0f0c95741f909e
-    m_Address: building_200004
+    m_Address: building_10401
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
@@ -154,12 +154,12 @@ MonoBehaviour:
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: cf2a8c2be4fba2b419d73f6ee270dd66
-    m_Address: building_200008
+    m_Address: building_20101
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: eb2a4f9116e1f08458949a47cca8e890
-    m_Address: building_200005
+    m_Address: building_50401
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0

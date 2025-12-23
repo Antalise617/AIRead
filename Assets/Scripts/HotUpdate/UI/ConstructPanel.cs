@@ -101,7 +101,7 @@ namespace GameFramework.HotUpdate.UI
                     dataList = tables.TbBuild.DataList;
                     break;
                 case PlacementType.Bridge:
-                    dataList = tables.TbBridge.DataList;
+                    dataList = tables.TbBridgeConfig.DataList;
                     break;
             }
 
@@ -129,7 +129,7 @@ namespace GameFramework.HotUpdate.UI
                         id = building.Id;
                         name = building.Name;
                     }
-                    else if (itemData is Bridge bridge)
+                    else if (itemData is BridgeConfig bridge)
                     {
                         id = bridge.Id;
                         name = $"桥梁 {bridge.Id}"; // 桥梁表可能没有 Name 字段

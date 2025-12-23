@@ -14,10 +14,10 @@ namespace Game.HotUpdate
         public event Action<int, long, long> OnItemChanged;
 
         // 定义资源 ID
-        public const int ITEM_ID_WOOD = 101;
-        public const int ITEM_ID_STONE = 102;
-        public const int ITEM_ID_OIL = 103;
-        public const int ITEM_ID_GOLD = 104;
+        public const int ITEM_ID_WOOD = 20001;
+        public const int ITEM_ID_STONE = 20002;
+        public const int ITEM_ID_OIL = 50001;
+        public const int ITEM_ID_GOLD = 2;
 
         /// <summary>
         /// 加载库存数据
