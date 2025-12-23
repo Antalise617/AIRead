@@ -65,12 +65,20 @@ namespace GameFramework.ECS.Systems
 
                     if (TrySpawnObject(req, out Entity spawned))
                     {
-                        // ★ 通过 Bridge 获取 IslandData
-                        var islandData = GameConfigBridge.GetIslandData(req.ObjectId);
-                        if (islandData != null)
+                        var islandBaseData = GameConfigBridge.GetIslandData(req.ObjectId);
+                        if (islandBaseData != null)
                         {
-                            _gridSystem.RegisterIsland(req.Position, islandData, req.RotationIndex);
-                            EntityManager.AddComponentData(spawned, new IslandComponent { ConfigId = req.ObjectId, Size = req.Size, AirSpace = req.AirspaceHeight });
+                            _gridSystem.RegisterIsland(req.Position, islandBaseData, req.RotationIndex);
+
+                            // === 核心逻辑：随机初始化岛屿的等级与地表逻辑属性 ===
+                            InitializeIslandLogicAttributes(spawned);
+
+                            EntityManager.AddComponentData(spawned, new IslandComponent
+                            {
+                                ConfigId = req.ObjectId,
+                                Size = req.Size,
+                                AirSpace = req.AirspaceHeight
+                            });
                             processed = true;
                         }
                     }
@@ -92,21 +100,20 @@ namespace GameFramework.ECS.Systems
                         switch (fType)
                         {
                             case 1:
-                                var cfg = GameConfigBridge.GetVisitorCenterConfig(req.ObjectId);
+                                var cfgVisitor = GameConfigBridge.GetVisitorCenterConfig(req.ObjectId);
                                 EntityManager.AddComponentData(spawned, new VisitorCenterComponent
                                 {
-                                    UnspawnedVisitorCount = (int)cfg.x,
-                                    SpawnInterval = cfg.y
+                                    UnspawnedVisitorCount = (int)cfgVisitor.x,
+                                    SpawnInterval = cfgVisitor.y
                                 });
                                 break;
                             case 5:
                                 var srvCfg = GameConfigBridge.GetServiceConfig(req.ObjectId);
                                 if (srvCfg.Found)
                                 {
-                                    // 1. 添加核心服务数据组件
                                     EntityManager.AddComponentData(spawned, new ServiceComponent
                                     {
-                                        ServiceConfigId = req.ObjectId, // 或者 srvCfg.FunctionId
+                                        ServiceConfigId = req.ObjectId,
                                         ServiceTime = srvCfg.ServiceTime,
                                         QueueCapacity = srvCfg.QueueCapacity,
                                         MaxConcurrentNum = srvCfg.MaxConcurrentNum,
@@ -114,22 +121,11 @@ namespace GameFramework.ECS.Systems
                                         OutputItemCount = srvCfg.OutputItemCount,
                                         IsActive = true
                                     });
-
-                                    // 2. 添加等待队列 Buffer
                                     EntityManager.AddBuffer<ServiceQueueElement>(spawned);
-
-                                    // 3. 添加服务槽位 Buffer (用于处理同时服务多人)
                                     var slots = EntityManager.AddBuffer<ServiceSlotElement>(spawned);
-
-                                    // 初始化空槽位
                                     for (int k = 0; k < srvCfg.MaxConcurrentNum; k++)
                                     {
-                                        slots.Add(new ServiceSlotElement
-                                        {
-                                            VisitorEntity = Entity.Null,
-                                            Timer = 0f,
-                                            IsOccupied = false
-                                        });
+                                        slots.Add(new ServiceSlotElement { VisitorEntity = Entity.Null, Timer = 0f, IsOccupied = false });
                                     }
                                 }
                                 break;
@@ -141,9 +137,6 @@ namespace GameFramework.ECS.Systems
                                     prodConfig.IsActive = true;
                                     EntityManager.AddComponentData(spawned, prodConfig);
                                 }
-                                break;
-                            default:
-                                // 普通装饰性建筑，无特殊逻辑
                                 break;
                         }
 
@@ -174,6 +167,46 @@ namespace GameFramework.ECS.Systems
             requests.Dispose();
         }
 
+        private void InitializeIslandLogicAttributes(Entity islandEntity)
+        {
+            // 1. 拿到的是 object 类型的配置对象（避开 cfg 命名空间报错）
+            object rawCfg = GameConfigBridge.GetRandomFirstLevelIslandConfig();
+
+            if (rawCfg != null)
+            {
+                // 2. 通过 Bridge 定义的提取委托来取值（这些委托在热更侧被指向真正的 cfg 字段）
+                int islandType = GameConfigBridge.GetIslandLevelType(rawCfg);
+                int bonusType = GameConfigBridge.GetIslandLevelBonusType(rawCfg);
+                int bonusValue = GameConfigBridge.GetIslandLevelValue(rawCfg);
+
+                EntityManager.AddComponentData(islandEntity, new IslandDataComponent
+                {
+                    Level = 1,
+                    IslandType = islandType,
+                    BonusType = bonusType,
+                    BonusValue = bonusValue
+                });
+
+                // 3. 处理 Buffer 数据
+                var buffer = EntityManager.AddBuffer<BuildableStructureElement>(islandEntity);
+                var structures = GameConfigBridge.GetIslandLevelStructures(rawCfg);
+
+                if (structures != null)
+                {
+                    foreach (var subtype in structures)
+                    {
+                        buffer.Add(new BuildableStructureElement { StructureType = subtype });
+                    }
+                }
+
+                Debug.Log($"[IslandSpawn] 岛屿随机初始化属性成功！类型ID: {islandType}, 加成值: {bonusValue}");
+            }
+            else
+            {
+                Debug.LogWarning("[IslandSpawn] 未能获取随机岛屿配置，请检查 GameConfigBridge 委托是否注入！");
+            }
+        }
+
         private bool TrySpawnObject(PlaceObjectRequest req, out Entity spawned)
         {
             spawned = Entity.Null;
@@ -181,14 +214,14 @@ namespace GameFramework.ECS.Systems
 
             if (string.IsNullOrEmpty(path)) return true;
 
-            float3 pos = _gridSystem.CalculateObjectCenterWorldPosition(req.Position, req.Size);
+            float3 worldPos = _gridSystem.CalculateObjectCenterWorldPosition(req.Position, req.Size);
 
             if (_entityFactory.HasEntity(req.ObjectId))
             {
                 float s = _gridConfig.CellSize;
                 float3 size = new float3(req.Size.x, req.Size.y, req.Size.z) * s;
                 var box = new BoxGeometry { Center = float3.zero, Orientation = quaternion.identity, Size = new float3(size.x, 0.5f, size.z) };
-                spawned = _entityFactory.SpawnColliderEntity(req.ObjectId, pos, req.Rotation, box);
+                spawned = _entityFactory.SpawnColliderEntity(req.ObjectId, worldPos, req.Rotation, box);
             }
 
             if (spawned == Entity.Null)

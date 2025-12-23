@@ -52,12 +52,28 @@ namespace GameFramework.ECS.Components
 
     public struct NewIslandTag : IComponentData { }
 
+    #region 岛屿相关组件
     public struct IslandComponent : IComponentData
     {
         public int ConfigId;
         public int3 Size;
         public int AirSpace;
     }
+    public struct IslandDataComponent : IComponentData
+    {
+        public int Level;               // 当前等级
+        public int IslandType;          // 存储枚举的 int 值
+        public int BonusType;           // 存储加成枚举的 int 值
+        public int BonusValue;          // 加成值
+    }
+
+    // 可建建筑列表
+    [InternalBufferCapacity(8)]
+    public struct BuildableStructureElement : IBufferElementData
+    {
+        public int StructureType;
+    }
+    #endregion
 
     public struct PlaceObjectRequest : IComponentData
     {

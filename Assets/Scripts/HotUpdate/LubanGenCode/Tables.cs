@@ -18,6 +18,7 @@ public partial class Tables
     public zs.TbBuild TbBuild {get; private set; }
     public zs.TbBuildingLevel TbBuildingLevel {get; private set; }
     public zs.TbItem TbItem {get; private set; }
+    public zs.TbGameConfig TbGameConfig {get; private set; }
     public zs.TbIsland TbIsland {get; private set; }
     public zs.TbIslandLevel TbIslandLevel {get; private set; }
     public zs.TbBuildingUnlock TbBuildingUnlock {get; private set; }
@@ -30,6 +31,7 @@ public partial class Tables
         ///        /// TbBuild = new zs.TbBuild(loader("zs_tbbuild"));
         ///        /// TbBuildingLevel = new zs.TbBuildingLevel(loader("zs_tbbuildinglevel"));
         ///        /// TbItem = new zs.TbItem(loader("zs_tbitem"));
+        ///        /// TbGameConfig = new zs.TbGameConfig(loader("zs_tbgameconfig"));
         ///        /// TbIsland = new zs.TbIsland(loader("zs_tbisland"));
         ///        /// TbIslandLevel = new zs.TbIslandLevel(loader("zs_tbislandlevel"));
         ///        /// TbBuildingUnlock = new zs.TbBuildingUnlock(loader("zs_tbbuildingunlock"));
@@ -56,6 +58,11 @@ public partial class Tables
 		{
 			TbItem = new zs.TbItem(await loader("zs_tbitem")); 
 			tables.Add("zs.TbItem", TbItem);
+		}));
+		list.Add(UniTask.Create(async () =>
+		{
+			TbGameConfig = new zs.TbGameConfig(await loader("zs_tbgameconfig")); 
+			tables.Add("zs.TbGameConfig", TbGameConfig);
 		}));
 		list.Add(UniTask.Create(async () =>
 		{
@@ -93,6 +100,7 @@ public partial class Tables
         TbBuild.ResolveRef(this);
         TbBuildingLevel.ResolveRef(this);
         TbItem.ResolveRef(this);
+        TbGameConfig.ResolveRef(this);
         TbIsland.ResolveRef(this);
         TbIslandLevel.ResolveRef(this);
         TbBuildingUnlock.ResolveRef(this);

@@ -1,63 +1,90 @@
+using System.Collections.Generic;
+using cfg; // 引用 Luban 配置命名空间
 using GameFramework.Core;
-using Unity.Mathematics;
-using cfg;
 using GameFramework.ECS.Components;
 using GameFramework.ECS.Systems;
-using System.Collections.Generic;
+using Unity.Mathematics;
+using UnityEngine;
 
 namespace HotUpdate.Core
 {
     public class HotfixConfigService : IGameConfigService
     {
+        public HotfixConfigService()
+        {
+            // 1. 注入 Service 实例
+            GameConfigBridge.Service = this;
+
+            // 2. 初始化额外的委托注入 (处理跨程序集 object 解析)
+            InitializeBridgeDelegates();
+
+            Debug.Log("[HotfixConfigService] 初始化完成并已注入 AOT Bridge。");
+        }
+
+        private void InitializeBridgeDelegates()
+        {
+            // 注入：随机获取一级岛屿等级配置
+            GameConfigBridge.OnGetRandomFirstLevelIsland = () =>
+            {
+                var tables = ConfigManager.Instance.Tables;
+                if (tables == null) return null;
+                // 筛选 ID 最后一位为 1 的记录（对应各表层类型的1级形态）
+                var pool = tables.TbIslandLevel.DataList.FindAll(x => x.Id % 10 == 1);
+                return pool.Count > 0 ? pool[UnityEngine.Random.Range(0, pool.Count)] : null;
+            };
+
+            // 注入：从 object 中提取具体字段 (强转为热更侧可见的 cfg.IslandLevel)
+            GameConfigBridge.OnGetIslandType = (obj) => (obj is IslandLevel c) ? (int)c.IslandType : 0;
+            GameConfigBridge.OnGetIslandBonusType = (obj) => (obj is IslandLevel c) ? (int)c.BonusBuildingTypes : 0;
+            GameConfigBridge.OnGetIslandValue = (obj) => (obj is IslandLevel c) ? c.Value : 0;
+            GameConfigBridge.OnGetIslandStructures = (obj) => (obj is IslandLevel c) ? c.BuildableStructures : null;
+        }
+
+        // --- IGameConfigService 实现 ---
+
         public int3 GetBuildingSize(int configId)
         {
-            var cfg = ConfigManager.Instance.Tables.TbBuild.Get(configId);
-            // 字段对应：Length(长), Width(宽)
+            var cfg = ConfigManager.Instance.Tables.TbBuild.GetOrDefault(configId);
             return cfg != null ? new int3(cfg.Length, 1, cfg.Width) : new int3(1, 1, 1);
         }
 
         public int3 GetIslandSize(int configId)
         {
-            var cfg = ConfigManager.Instance.Tables.TbIsland.Get(configId);
+            var cfg = ConfigManager.Instance.Tables.TbIsland.GetOrDefault(configId);
             return cfg != null ? new int3(cfg.Length, cfg.Height, cfg.Width) : new int3(1, 1, 1);
         }
 
         public int GetIslandAirSpace(int configId)
         {
-            return ConfigManager.Instance.Tables.TbIsland.Get(configId)?.AirHeight ?? 0;
+            return ConfigManager.Instance.Tables.TbIsland.GetOrDefault(configId)?.AirHeight ?? 0;
         }
 
         public string GetResourceName(int configId, int typeInt)
         {
+            var tables = ConfigManager.Instance.Tables;
+            if (tables == null) return null;
             PlacementType type = (PlacementType)typeInt;
-            if (ConfigManager.Instance.Tables == null) return null;
             switch (type)
             {
-                // 字段对应：ResourceName
-                case PlacementType.Island: return ConfigManager.Instance.Tables.TbIsland.Get(configId)?.ResourceName;
-                case PlacementType.Building: return ConfigManager.Instance.Tables.TbBuild.Get(configId)?.ResourceName;
-                case PlacementType.Bridge: return ConfigManager.Instance.Tables.TbBridgeConfig.Get(configId)?.ResourceName;
+                case PlacementType.Island: return tables.TbIsland.GetOrDefault(configId)?.ResourceName;
+                case PlacementType.Building: return tables.TbBuild.GetOrDefault(configId)?.ResourceName;
+                case PlacementType.Bridge: return tables.TbBridgeConfig.GetOrDefault(configId)?.ResourceName;
+                default: return null;
             }
-            return null;
         }
 
         public int GetBuildingFunctionType(int configId)
         {
-            var cfg = ConfigManager.Instance.Tables.TbBuild.Get(configId);
-            // 字段对应：BuildingType (枚举)
+            var cfg = ConfigManager.Instance.Tables.TbBuild.GetOrDefault(configId);
             return cfg != null ? (int)cfg.BuildingType : 0;
         }
 
-        public float2 GetVisitorCenterConfig(int configId)
-        {
-            return new float2(5, 2.0f);
-        }
+        public float2 GetVisitorCenterConfig(int configId) => new float2(5, 2.0f);
 
         public IslandData GetIslandData(int configId)
         {
-            var cfg = ConfigManager.Instance.Tables.TbIsland.Get(configId);
+            var cfg = ConfigManager.Instance.Tables.TbIsland.GetOrDefault(configId);
             if (cfg == null) return null;
-
             var data = new IslandData
             {
                 Id = cfg.Id,
@@ -68,66 +95,30 @@ namespace HotUpdate.Core
                 BuildArea = new List<int2>(),
                 AttachmentPoint = new List<int2>()
             };
-
-            // 处理 BuildArea 列表 (List<List<int>>)
-            if (cfg.BuildArea != null)
-            {
-                foreach (var p in cfg.BuildArea)
-                    if (p.Count >= 2) data.BuildArea.Add(new int2(p[0], p[1]));
-            }
-
-            if (cfg.AttachmentPoint != null)
-            {
-                foreach (var p in cfg.AttachmentPoint)
-                    if (p.Count >= 2) data.AttachmentPoint.Add(new int2(p[0], p[1]));
-            }
-
+            if (cfg.BuildArea != null) foreach (var p in cfg.BuildArea) if (p.Count >= 2) data.BuildArea.Add(new int2(p[0], p[1]));
+            if (cfg.AttachmentPoint != null) foreach (var p in cfg.AttachmentPoint) if (p.Count >= 2) data.AttachmentPoint.Add(new int2(p[0], p[1]));
             return data;
         }
 
-        /// <summary>
-        /// 【核心修改】从建筑等级表中获取生产配置
-        /// </summary>
-        public bool TryGetFactoryConfig(int buildingId, out ProductionComponent config)
+        public bool TryGetFactoryConfig(int configId, out ProductionComponent config)
         {
             config = default;
             var tables = ConfigManager.Instance.Tables;
             if (tables == null) return false;
-
-            // 1. 生产数据现在存放在 TbBuildingLevel 中
-            // 假设 buildingId 对应等级表的 ID，且目前默认取 1 级或特定的条目
-            // 注意：等级表通常是复合 Key (ID+Level) 或者 ID 代表特定等级的行
-            var factoryData = tables.TbBuildingLevel.GetOrDefault(buildingId);
-
-            if (factoryData == null)
-            {
-                return false;
-            }
-
-            // 2. 映射产出与消耗数据 (假设 InputItem 和 OutputItem 是 List<List<int>> 结构)
+            var factoryData = tables.TbBuildingLevel.GetOrDefault(configId);
+            if (factoryData == null) return false;
             config = new ProductionComponent
             {
-                // 输入：取第一个列表的第一个元素为ID，第二个为数量
-                InputItemId = (factoryData.ItemCost != null && factoryData.ItemCost.Count > 0 && factoryData.ItemCost[0].Count > 0)
-                                ? factoryData.ItemCost[0][0] : 0,
-                InputCount = (factoryData.ItemCost != null && factoryData.ItemCost.Count > 0 && factoryData.ItemCost[0].Count > 1)
-                                ? factoryData.ItemCost[0][1] : 0,
-
-                // 输出：取第一个列表的第一个元素为ID，第二个为数量
-                OutputItemId = (factoryData.OutPut != null && factoryData.OutPut.Count > 0 && factoryData.OutPut[0].Count > 0)
-                                 ? factoryData.OutPut[0][0] : 0,
-                OutputCount = (factoryData.OutPut != null && factoryData.OutPut.Count > 0 && factoryData.OutPut[0].Count > 1)
-                                 ? factoryData.OutPut[0][1] : 0,
-
-                ProductionInterval = factoryData.OutputCycle,       // 对应等级表中的 Time 字段
-                MaxReserves = 5000,       // 对应等级表中的 MaxReserves 字段
-
-                // 运行时初始状态
+                InputItemId = (factoryData.ItemCost != null && factoryData.ItemCost.Count > 0 && factoryData.ItemCost[0].Count > 0) ? factoryData.ItemCost[0][0] : 0,
+                InputCount = (factoryData.ItemCost != null && factoryData.ItemCost.Count > 0 && factoryData.ItemCost[0].Count > 1) ? factoryData.ItemCost[0][1] : 0,
+                OutputItemId = (factoryData.OutPut != null && factoryData.OutPut.Count > 0 && factoryData.OutPut[0].Count > 0) ? factoryData.OutPut[0][0] : 0,
+                OutputCount = (factoryData.OutPut != null && factoryData.OutPut.Count > 0 && factoryData.OutPut[0].Count > 1) ? factoryData.OutPut[0][1] : 0,
+                ProductionInterval = factoryData.OutputCycle,
+                MaxReserves = 5000,
                 IsActive = true,
                 Timer = 0f,
                 CurrentReserves = 0
             };
-
             return true;
         }
 
@@ -136,26 +127,18 @@ namespace HotUpdate.Core
             var info = new ServiceBuildingInfo { Found = false };
             var tables = ConfigManager.Instance.Tables;
             if (tables == null) return info;
-
             var buildingCfg = tables.TbBuild.GetOrDefault(buildingId);
-            if (buildingCfg == null) return info;
-
-            // 根据新配表的 FunctionType 枚举判断
-            if (buildingCfg.BuildingType != cfg.zsEnum.BuildingType.Service)
-                return info;
-
-            // 服务类数据建议也从 TbBuildingLevel 中读取相应字段
+            if (buildingCfg == null || buildingCfg.BuildingType != cfg.zsEnum.BuildingType.Service) return info;
             var levelData = tables.TbBuildingLevel.GetOrDefault(buildingId);
             if (levelData != null)
             {
                 info.Found = true;
                 info.ServiceTime = levelData.DwellTime;
-                info.QueueCapacity = 10; // 默认值
-                info.MaxConcurrentNum = 1; // 默认值
+                info.QueueCapacity = 10;
+                info.MaxConcurrentNum = 1;
                 info.OutputItemId = (levelData.OutPut.Count > 0) ? levelData.OutPut[0][0] : 0;
                 info.OutputItemCount = (levelData.OutPut.Count > 0) ? levelData.OutPut[0][1] : 0;
             }
-
             return info;
         }
     }
