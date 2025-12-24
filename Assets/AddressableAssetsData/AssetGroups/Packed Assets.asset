@@ -57,6 +57,21 @@ MonoBehaviour:
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 2d7a8806adac0484a86490af3e443f71
+    m_Address: 20001
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 2df520f1ed887af46a96fe035c615942
+    m_Address: 30004
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 32b2a00719adf13468ab4f8dce63c35a
+    m_Address: 30003
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 390a911407e4b444bb073d04e4542527
     m_Address: building_10101
     m_ReadOnly: 0
@@ -72,8 +87,23 @@ MonoBehaviour:
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 4fe8c14a92bd823459094b01a20a5b28
+    m_Address: 31002
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 54bee8bceddbf2143b5150cda3a3c4a2
     m_Address: bridge_300002
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 57e3d2f1e523a4e44ae7114955673340
+    m_Address: 30002
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 57f858dcefe57ca4d9e828d469079247
+    m_Address: 31006
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
@@ -89,6 +119,11 @@ MonoBehaviour:
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 63124ace0e9bd4f4ea69d7c95ded5b32
     m_Address: bridge_300005
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 638ab842ebb0d8245853fbbb32afe677
+    m_Address: 31001
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
@@ -117,6 +152,26 @@ MonoBehaviour:
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 73d4c18b0a883ef47b45f9ee413eb715
+    m_Address: 31003
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 7404079018a398f41978a9ef9899a3ca
+    m_Address: 30001
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 75bcac95549cdc64388782854f8dedc1
+    m_Address: 20003
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 80b1689b247c59e4a8b0672eccbb0240
+    m_Address: 31005
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 8dcc4cb2f14c3854a8a2e53767a58d7a
     m_Address: island_100005
     m_ReadOnly: 0
@@ -127,8 +182,23 @@ MonoBehaviour:
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 937460089effc544ea95e3c36926ad01
+    m_Address: 40001
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 953284eccc1bae140a3e3d0650c696fa
     m_Address: ConstructPanel
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 9d9173266ffded84193f52b7a00a311a
+    m_Address: 50001
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: a8ba20e16603b72408e0153bfdca2f7e
+    m_Address: 50002
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
@@ -142,11 +212,26 @@ MonoBehaviour:
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: b01d9694eab06ff4d8ba6dfde4978ee7
+    m_Address: 20002
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: b16c931f5f60ceb4a924612ea265585e
+    m_Address: 50003
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: b17e2b2c000f5ce408d7b9e87dbf6f50
     m_Address: Assets/Prefabs/UICanvas.prefab
     m_ReadOnly: 0
     m_SerializedLabels:
     - UICanvas
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: c1073cacc1c96c141929f940dc75c673
+    m_Address: 31004
+    m_ReadOnly: 0
+    m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: ce094bccd2841954eb48b9167a712f2a
     m_Address: island_100003
@@ -155,6 +240,11 @@ MonoBehaviour:
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: cf2a8c2be4fba2b419d73f6ee270dd66
     m_Address: building_20101
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: d21508c1a5dc72f40bfba9453a202ccb
+    m_Address: 30005
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0

@@ -1,3 +1,4 @@
+using System;
 using Unity.Collections;
 using Unity.Entities;
 using Unity.Mathematics;
@@ -153,10 +154,23 @@ namespace GameFramework.ECS.Components
     public struct BuildingComponent : IComponentData
     {
         public int ConfigId;
-        public int Name;
+        public FixedString64Bytes Name;
         public int3 Size;
         public int BuildingType;
         public int BuildingSubtype;
+    }
+
+    // 【新增】繁荣度组件
+    public struct ProsperityComponent : IComponentData
+    {
+        public int Value; // 提供的繁荣度数值
+    }
+
+    // 【新增】电力组件
+    public struct ElectricityComponent : IComponentData
+    {
+        public int PowerConsumption; // 耗电量 (负数代表发电，正数代表耗电，视配表而定，通常配表填正数代表消耗)
+        public bool IsPowered;       // 是否有电 (决定建筑是否工作)
     }
 
     public struct VisitorCenterComponent : IComponentData
@@ -165,59 +179,68 @@ namespace GameFramework.ECS.Components
         public float SpawnTimer;
         public float SpawnInterval;
     }
-    /// <summary>
-    /// 建筑生产组件
-    /// </summary>
+    // 【新增】原料清单 Buffer (ItemId, Count)
+    [InternalBufferCapacity(4)] // 预估大多数工厂原料不超过4种，优化内存
+    public struct ProductionInputElement : IBufferElementData
+    {
+        public int ItemId;
+        public int Count;
+    }
+
+    // 【新增】产出清单 Buffer (ItemId, Count)
+    [InternalBufferCapacity(4)]
+    public struct ProductionOutputElement : IBufferElementData
+    {
+        public int ItemId;
+        public int CountPerCycle;    // [配置] 单次生产增加的数量
+        public int CurrentStorage;   // [运行时] 当前已生产并存储的数量
+    }
+    [InternalBufferCapacity(4)]
+    public struct IslandAffinityElement : IBufferElementData
+    {
+        public int IslandType; // 对应 zsEnum.IslandType
+    }
+
+    // 【修改】生产组件：增加岗位和职业信息，移除旧的 CurrentReserves
     public struct ProductionComponent : IComponentData
     {
-        // 生产配置数据
-        public int InputItemId; // 输入物品ID
-        public int InputCount; // 输入数量
-        public int OutputItemId; // 输出物品ID
-        public int OutputCount; // 输出数量
-        public float ProductionInterval; // 生产周期
-        public int MaxReserves; // 储量上限
+        public float ProductionInterval;
+        public int MaxReserves;          // 总库存上限 (所有产出物数量之和不能超过此值)
 
-        // 生产时数据
-        public float Timer;           // 当前计时
-        public bool IsActive;         // 是否生产中
-        public int CurrentReserves; // 当前储量
+        // 新增配置数据
+        public int JobSlots;             // 岗位数量
+        public int DemandOccupation;     // 需求职业 (zsEnum.Profession)
+
+        // 运行时状态
+        public float Timer;
+        public bool IsActive;
+        // public int CurrentReserves;   <-- [移除] 改为通过遍历 OutputElement 动态计算
     }
-    /// <summary>
-    /// 服务设施组件
-    /// </summary>
+    // 【修改】服务组件：单人服务模式
     public struct ServiceComponent : IComponentData
     {
-        public int ServiceConfigId;      // 对应的服务配置ID (220001等)
+        public int ServiceConfigId;
 
         // --- 配置数据 ---
         public float ServiceTime;        // 单次服务所需时间
-        public int QueueCapacity;        // 排队队列上限
-        public int MaxConcurrentNum;     // 最大同时服务人数
+        public int MaxVisitorCapacity;   // 建筑内最大容纳人数 (包含正在服务的 + 排队的)
 
-        // --- 产出配置 (根据csv中的 outputItem: 104;10) ---
-        public int OutputItemId;         // 服务完成后获得的奖励ID
-        public int OutputItemCount;      // 奖励数量
+        public int OutputItemId;         // 服务奖励ID (金币)
+        public int OutputItemCount;      // 服务奖励数量
 
-        public bool IsActive;            // 建筑是否激活
+        // --- 运行时状态 ---
+        public bool IsActive;            // 开关
+        public bool IsServing;           // 是否正在进行服务 (True = 柜台有人)
+        public float ServiceTimer;       // 当前服务倒计时
+        public int CurrentServingItemId; // 记录当前服务消耗了什么物品 (用于结算或统计)
     }
 
-    // === 新增：排队队列 Buffer ===
-    [InternalBufferCapacity(10)] // 预设容量，超过会自动分配堆内存
+    // 【修改】游客队列 (存储所有在建筑内的游客)
+    // 逻辑约定：队列第0个元素即为“正在接受服务”的游客，后面的是“排队中”的游客
+    [InternalBufferCapacity(10)]
     public struct ServiceQueueElement : IBufferElementData
     {
         public Entity VisitorEntity;
-    }
-
-    /// <summary>
-    /// 正在服务中的槽位 (支持配置表中的 concurrentlyServiceNum > 1)
-    /// </summary>
-    [InternalBufferCapacity(4)]
-    public struct ServiceSlotElement : IBufferElementData
-    {
-        public Entity VisitorEntity; // 正在服务的游客
-        public float Timer;          // 当前服务进度
-        public bool IsOccupied;      // 槽位是否被占用
     }
     #endregion
 }

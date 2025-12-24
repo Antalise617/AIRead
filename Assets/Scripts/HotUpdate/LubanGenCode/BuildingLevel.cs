@@ -25,7 +25,7 @@ public sealed partial class BuildingLevel : Luban.BeanBase
         {int n0 = System.Math.Min(_buf.ReadSize(), _buf.Size);BuildingTag = new System.Collections.Generic.List<zsEnum.PreferenceTag>(n0);for(var i0 = 0 ; i0 < n0 ; i0++) { zsEnum.PreferenceTag _e0;  _e0 = (zsEnum.PreferenceTag)_buf.ReadInt(); BuildingTag.Add(_e0);}}
         Prosperity = _buf.ReadInt();
         PowerConsumption = _buf.ReadInt();
-        {int n0 = System.Math.Min(_buf.ReadSize(), _buf.Size);IslandAffinity = new System.Collections.Generic.List<System.Collections.Generic.List<int>>(n0);for(var i0 = 0 ; i0 < n0 ; i0++) { System.Collections.Generic.List<int> _e0;  {int n1 = System.Math.Min(_buf.ReadSize(), _buf.Size);_e0 = new System.Collections.Generic.List<int>(n1);for(var i1 = 0 ; i1 < n1 ; i1++) { int _e1;  _e1 = _buf.ReadInt(); _e0.Add(_e1);}} IslandAffinity.Add(_e0);}}
+        {int n0 = System.Math.Min(_buf.ReadSize(), _buf.Size);IslandAffinity = new System.Collections.Generic.List<zsEnum.IslandType>(n0);for(var i0 = 0 ; i0 < n0 ; i0++) { zsEnum.IslandType _e0;  _e0 = (zsEnum.IslandType)_buf.ReadInt(); IslandAffinity.Add(_e0);}}
         JobSlots = _buf.ReadInt();
         DemandOccupation = (zsEnum.Profession)_buf.ReadInt();
         VisitorCapacity = _buf.ReadInt();
@@ -91,7 +91,7 @@ public sealed partial class BuildingLevel : Luban.BeanBase
     /// <summary>
     /// 岛屿亲和
     /// </summary>
-    public readonly System.Collections.Generic.List<System.Collections.Generic.List<int>> IslandAffinity;
+    public readonly System.Collections.Generic.List<zsEnum.IslandType> IslandAffinity;
     /// <summary>
     /// 岗位数量
     /// </summary>

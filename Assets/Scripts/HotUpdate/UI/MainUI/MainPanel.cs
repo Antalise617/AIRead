@@ -1,13 +1,12 @@
 using GameFramework.Managers;
 using GameFramework.UI;
 using GameFramework.Core;
-// using GameFramework.Events; // 不再需要通用的 EventManager
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 using Cysharp.Threading.Tasks;
 using GameFramework.HotUpdate.UI;
-using Game.HotUpdate; // 引用 GlobalInventoryManager 所在的命名空间
+using Game.HotUpdate;
 
 class MainPanel : UIPanel
 {
@@ -26,6 +25,12 @@ class MainPanel : UIPanel
     [UIBind] private Button m_btn_7DayCheckIn;
     [UIBind] private Button m_btn_PlacementSystem;
 
+    // 【修改】在 UI 内部定义需要监听和显示的资源 ID (与配表 Item_道具表 对应)
+    private const int RES_ID_GOLD = 2;      // 金币
+    private const int RES_ID_WOOD = 20001;  // 木材
+    private const int RES_ID_STONE = 20002; // 石材
+    private const int RES_ID_OIL = 50001;   // 原油
+
     protected override void OnInit()
     {
         base.OnInit();
@@ -36,7 +41,7 @@ class MainPanel : UIPanel
             m_btn_PlacementSystem.onClick.AddListener(OnPlacementSystemClicked);
         }
 
-        // 【关键修改】监听库存变化事件
+        // 监听库存变化事件
         GlobalInventoryManager.Instance.OnItemChanged += OnInventoryItemChanged;
 
         // 初始化显示
@@ -45,7 +50,6 @@ class MainPanel : UIPanel
 
     protected void OnDestroy()
     {
-        // 【关键修改】移除事件监听，防止内存泄漏
         if (GlobalInventoryManager.Instance != null)
         {
             GlobalInventoryManager.Instance.OnItemChanged -= OnInventoryItemChanged;
@@ -60,31 +64,27 @@ class MainPanel : UIPanel
     protected override void OnShow()
     {
         base.OnShow();
-        // 每次打开面板时也刷新一次，确保数据最新
         RefreshAllResources();
     }
 
     /// <summary>
-    /// 【新增】库存发生变化时的回调
+    /// 库存发生变化时的回调
     /// </summary>
-    /// <param name="itemId">物品ID</param>
-    /// <param name="change">变化量</param>
-    /// <param name="total">当前总量</param>
     private void OnInventoryItemChanged(int itemId, long change, long total)
     {
-        // 根据 ID 更新对应的 UI 文本
+        // 【修改】使用本地常量判断
         switch (itemId)
         {
-            case GlobalInventoryManager.ITEM_ID_WOOD:
+            case RES_ID_WOOD:
                 if (m_tmp_WoodNumText != null) m_tmp_WoodNumText.text = total.ToString();
                 break;
-            case GlobalInventoryManager.ITEM_ID_STONE:
+            case RES_ID_STONE:
                 if (m_tmp_RockNumText != null) m_tmp_RockNumText.text = total.ToString();
                 break;
-            case GlobalInventoryManager.ITEM_ID_OIL:
+            case RES_ID_OIL:
                 if (m_tmp_OilNumText != null) m_tmp_OilNumText.text = total.ToString();
                 break;
-            case GlobalInventoryManager.ITEM_ID_GOLD:
+            case RES_ID_GOLD:
                 if (m_tmp_GoldCoinNumText != null) m_tmp_GoldCoinNumText.text = total.ToString();
                 break;
         }
@@ -98,18 +98,18 @@ class MainPanel : UIPanel
         var invMgr = GlobalInventoryManager.Instance;
         if (invMgr == null) return;
 
-        // 直接从 Inventory 获取数据
+        // 【修改】使用本地常量获取数据
         if (m_tmp_WoodNumText != null)
-            m_tmp_WoodNumText.text = invMgr.GetItemCount(GlobalInventoryManager.ITEM_ID_WOOD).ToString();
+            m_tmp_WoodNumText.text = invMgr.GetItemCount(RES_ID_WOOD).ToString();
 
         if (m_tmp_RockNumText != null)
-            m_tmp_RockNumText.text = invMgr.GetItemCount(GlobalInventoryManager.ITEM_ID_STONE).ToString();
+            m_tmp_RockNumText.text = invMgr.GetItemCount(RES_ID_STONE).ToString();
 
         if (m_tmp_OilNumText != null)
-            m_tmp_OilNumText.text = invMgr.GetItemCount(GlobalInventoryManager.ITEM_ID_OIL).ToString();
+            m_tmp_OilNumText.text = invMgr.GetItemCount(RES_ID_OIL).ToString();
 
         if (m_tmp_GoldCoinNumText != null)
-            m_tmp_GoldCoinNumText.text = invMgr.GetItemCount(GlobalInventoryManager.ITEM_ID_GOLD).ToString();
+            m_tmp_GoldCoinNumText.text = invMgr.GetItemCount(RES_ID_GOLD).ToString();
     }
 
     private async void OnPlacementSystemClicked()

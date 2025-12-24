@@ -83,10 +83,7 @@ namespace GameFramework.ECS.Systems
                         var queueBuffer = SystemAPI.GetBuffer<ServiceQueueElement>(buildingEnt);
 
                         // 如果队列已满，标记为不可选
-                        if (queueBuffer.Length >= serviceComp.QueueCapacity)
-                        {
-                            isQueueFull = true;
-                        }
+                        
                     }
 
                     int bType = GetBuildingTypeAsInt(buildingComps[i].ConfigId);

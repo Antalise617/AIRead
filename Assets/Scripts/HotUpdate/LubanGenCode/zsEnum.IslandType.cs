@@ -14,6 +14,10 @@ namespace cfg.zsEnum
     public enum IslandType
     {
         /// <summary>
+        /// 空
+        /// </summary>
+        Non = 0,
+        /// <summary>
         /// 草原岛屿
         /// </summary>
         GrasslandIslands = 1,

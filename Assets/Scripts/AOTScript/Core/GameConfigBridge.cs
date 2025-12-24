@@ -5,6 +5,21 @@ using GameFramework.ECS.Systems; // 引用 IslandData 结构
 
 namespace GameFramework.Core
 {
+    // 【新增】用于在 Bridge 间传递复杂的工厂配置数据
+    public class FactoryConfigDTO
+    {
+        public bool IsValid;
+        public float ProductionInterval;
+        public int MaxReserves;
+
+        // 【新增】
+        public int JobSlots;
+        public int DemandOccupation;
+        public List<int> IslandAffinity = new List<int>();
+
+        public List<int2> Inputs = new List<int2>();
+        public List<int2> Outputs = new List<int2>();
+    }
     public interface IGameConfigService
     {
         int3 GetBuildingSize(int configId);
@@ -15,6 +30,10 @@ namespace GameFramework.Core
         // 获取建筑功能类型 (返回 int)
         int GetBuildingFunctionType(int configId);
 
+        // === 【新增】获取建筑名称和子类型接口 ===
+        string GetBuildingName(int configId);
+        int GetBuildingSubtype(int configId);
+
         // 获取游客中心配置 (x=库存, y=间隔)
         float2 GetVisitorCenterConfig(int configId);
 
@@ -22,18 +41,21 @@ namespace GameFramework.Core
         IslandData GetIslandData(int configId);
 
         // 尝试获取工厂/生产配置
-        bool TryGetFactoryConfig(int configId, out GameFramework.ECS.Components.ProductionComponent config);
+        FactoryConfigDTO GetFactoryConfig(int configId);
 
         // 获取服务类建筑配置
         ServiceBuildingInfo GetServiceConfig(int buildingId);
+
+        // 【新增】获取建筑等级相关属性
+        int GetBuildingProsperity(int configId);
+        int GetBuildingPowerConsumption(int configId);
     }
 
     public struct ServiceBuildingInfo
     {
         public bool Found;
         public float ServiceTime;
-        public int QueueCapacity;
-        public int MaxConcurrentNum;
+        public int MaxVisitorCapacity; // 对应配表 VisitorCapacity
         public int OutputItemId;
         public int OutputItemCount;
     }
@@ -49,14 +71,18 @@ namespace GameFramework.Core
         public static int GetIslandAirSpace(int configId) => Service?.GetIslandAirSpace(configId) ?? 0;
         public static string GetResourceName(int configId, int type) => Service?.GetResourceName(configId, type);
         public static int GetBuildingFunctionType(int configId) => Service?.GetBuildingFunctionType(configId) ?? 0;
+
+        // === 【新增】静态调用封装 ===
+        public static string GetBuildingName(int configId) => Service?.GetBuildingName(configId) ?? string.Empty;
+        public static int GetBuildingSubtype(int configId) => Service?.GetBuildingSubtype(configId) ?? 0;
+        // ============================
+
         public static float2 GetVisitorCenterConfig(int configId) => Service?.GetVisitorCenterConfig(configId) ?? float2.zero;
         public static IslandData GetIslandData(int configId) => Service?.GetIslandData(configId);
 
-        public static bool TryGetFactoryConfig(int configId, out GameFramework.ECS.Components.ProductionComponent config)
+        public static FactoryConfigDTO GetFactoryConfig(int configId)
         {
-            if (Service != null) return Service.TryGetFactoryConfig(configId, out config);
-            config = default;
-            return false;
+            return Service?.GetFactoryConfig(configId) ?? new FactoryConfigDTO();
         }
 
         public static ServiceBuildingInfo GetServiceConfig(int buildingId)
@@ -85,5 +111,8 @@ namespace GameFramework.Core
         public static int GetIslandLevelBonusType(object obj) => OnGetIslandBonusType?.Invoke(obj) ?? 0;
         public static int GetIslandLevelValue(object obj) => OnGetIslandValue?.Invoke(obj) ?? 0;
         public static List<int> GetIslandLevelStructures(object obj) => OnGetIslandStructures?.Invoke(obj);
+
+        public static int GetBuildingProsperity(int configId) => Service?.GetBuildingProsperity(configId) ?? 0;
+        public static int GetBuildingPowerConsumption(int configId) => Service?.GetBuildingPowerConsumption(configId) ?? 0;
     }
 }

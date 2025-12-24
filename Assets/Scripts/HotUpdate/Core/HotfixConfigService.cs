@@ -79,6 +79,22 @@ namespace HotUpdate.Core
             return cfg != null ? (int)cfg.BuildingType : 0;
         }
 
+        // === 【新增】接口实现 ===
+        public string GetBuildingName(int configId)
+        {
+            var cfg = ConfigManager.Instance.Tables.TbBuild.GetOrDefault(configId);
+            // 假设配置表中的 Name 字段就是 int 类型 (例如语言包ID)
+            return cfg != null ? cfg.Name : string.Empty;
+        }
+
+        public int GetBuildingSubtype(int configId)
+        {
+            var cfg = ConfigManager.Instance.Tables.TbBuild.GetOrDefault(configId);
+            // 将枚举强转为 int 返回
+            return cfg != null ? (int)cfg.BuildingSubtype : 0;
+        }
+        // ========================
+
         public float2 GetVisitorCenterConfig(int configId) => new float2(5, 2.0f);
 
         public IslandData GetIslandData(int configId)
@@ -100,26 +116,54 @@ namespace HotUpdate.Core
             return data;
         }
 
-        public bool TryGetFactoryConfig(int configId, out ProductionComponent config)
+        public FactoryConfigDTO GetFactoryConfig(int configId)
         {
-            config = default;
+            var dto = new FactoryConfigDTO { IsValid = false };
+
             var tables = ConfigManager.Instance.Tables;
-            if (tables == null) return false;
-            var factoryData = tables.TbBuildingLevel.GetOrDefault(configId);
-            if (factoryData == null) return false;
-            config = new ProductionComponent
+            if (tables == null) return dto;
+
+            var levelData = tables.TbBuildingLevel.GetOrDefault(configId);
+            if (levelData == null) return dto;
+
+            // 1. 输入/输出 (保持不变)
+            if (levelData.ItemCost != null)
             {
-                InputItemId = (factoryData.ItemCost != null && factoryData.ItemCost.Count > 0 && factoryData.ItemCost[0].Count > 0) ? factoryData.ItemCost[0][0] : 0,
-                InputCount = (factoryData.ItemCost != null && factoryData.ItemCost.Count > 0 && factoryData.ItemCost[0].Count > 1) ? factoryData.ItemCost[0][1] : 0,
-                OutputItemId = (factoryData.OutPut != null && factoryData.OutPut.Count > 0 && factoryData.OutPut[0].Count > 0) ? factoryData.OutPut[0][0] : 0,
-                OutputCount = (factoryData.OutPut != null && factoryData.OutPut.Count > 0 && factoryData.OutPut[0].Count > 1) ? factoryData.OutPut[0][1] : 0,
-                ProductionInterval = factoryData.OutputCycle,
-                MaxReserves = 5000,
-                IsActive = true,
-                Timer = 0f,
-                CurrentReserves = 0
-            };
-            return true;
+                foreach (var item in levelData.ItemCost)
+                    if (item.Count >= 2) dto.Inputs.Add(new int2(item[0], item[1]));
+            }
+            if (levelData.OutPut != null)
+            {
+                foreach (var item in levelData.OutPut)
+                    if (item.Count >= 2) dto.Outputs.Add(new int2(item[0], item[1]));
+            }
+
+            // 2. 基础属性
+            dto.ProductionInterval = levelData.OutputCycle;
+
+            int storage = 100;
+            if (levelData.OutputStorage != null && levelData.OutputStorage.Count > 0)
+            {
+                var sItem = levelData.OutputStorage[0];
+                storage = sItem.Count >= 2 ? sItem[1] : (sItem.Count >= 1 ? sItem[0] : 100);
+            }
+            dto.MaxReserves = storage;
+
+            // 3. 【新增】读取岗位、职业、岛屿亲和
+            dto.JobSlots = levelData.JobSlots;
+            dto.DemandOccupation = (int)levelData.DemandOccupation; // 强转枚举
+
+            if (levelData.IslandAffinity != null)
+            {
+                // Luban 生成的 List<IslandType> 枚举列表，转为 int
+                foreach (var affinity in levelData.IslandAffinity)
+                {
+                    dto.IslandAffinity.Add((int)affinity);
+                }
+            }
+
+            dto.IsValid = dto.Outputs.Count > 0;
+            return dto;
         }
 
         public ServiceBuildingInfo GetServiceConfig(int buildingId)
@@ -127,19 +171,36 @@ namespace HotUpdate.Core
             var info = new ServiceBuildingInfo { Found = false };
             var tables = ConfigManager.Instance.Tables;
             if (tables == null) return info;
-            var buildingCfg = tables.TbBuild.GetOrDefault(buildingId);
-            if (buildingCfg == null || buildingCfg.BuildingType != cfg.zsEnum.BuildingType.Service) return info;
+
+            // 1. 读取等级表
             var levelData = tables.TbBuildingLevel.GetOrDefault(buildingId);
-            if (levelData != null)
-            {
-                info.Found = true;
-                info.ServiceTime = levelData.DwellTime;
-                info.QueueCapacity = 10;
-                info.MaxConcurrentNum = 1;
-                info.OutputItemId = (levelData.OutPut.Count > 0) ? levelData.OutPut[0][0] : 0;
-                info.OutputItemCount = (levelData.OutPut.Count > 0) ? levelData.OutPut[0][1] : 0;
-            }
+            if (levelData == null) return info;
+
+            // 2. 填充数据
+            info.Found = true;
+            info.ServiceTime = levelData.DwellTime > 0 ? levelData.DwellTime : 5.0f;
+
+            // 【修改】直接读取 VisitorCapacity 作为总容量
+            // 现在的逻辑是：这个值决定了建筑里能塞多少人，无论是在窗口办事还是在后面排队
+            info.MaxVisitorCapacity = levelData.VisitorCapacity > 0 ? levelData.VisitorCapacity : 5;
+
+            // 产出配置 (假设服务奖励金币 ID=1)
+            info.OutputItemId = 1;
+            info.OutputItemCount = 10;
+
             return info;
+        }
+        public int GetBuildingProsperity(int configId)
+        {
+            var cfg = ConfigManager.Instance.Tables.TbBuildingLevel.GetOrDefault(configId);
+            return cfg != null ? cfg.Prosperity : 0;
+        }
+
+        // 【实现】获取耗电量
+        public int GetBuildingPowerConsumption(int configId)
+        {
+            var cfg = ConfigManager.Instance.Tables.TbBuildingLevel.GetOrDefault(configId);
+            return cfg != null ? cfg.PowerConsumption : 0;
         }
     }
 }

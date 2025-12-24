@@ -49,27 +49,7 @@ namespace GameFramework.ECS.Systems
                     */
 
                     // 4. 尝试进入队列
-                    if (queueBuffer.Length < serviceComp.QueueCapacity)
-                    {
-                        // === 成功进入 ===
-
-                        // 加入队列
-                        queueBuffer.Add(new ServiceQueueElement { VisitorEntity = entity });
-
-                        // 修改游客状态
-                        visitorRef.ValueRW.CurrentState = VisitorState.Waiting;
-                        visitorRef.ValueRW.TargetBuildingEntity = Entity.Null; // 清空目标，防止重复逻辑
-
-                        // 隐藏模型
-                        if (view.GameObject != null) view.GameObject.SetActive(false);
-
-                        Debug.Log($"[Admission] 游客进入目标建筑。");
-                    }
-                    else
-                    {
-                        // === 队列满 ===
-                        HandleRejection(ref visitorRef.ValueRW);
-                    }
+                    
                 }
                 else
                 {
