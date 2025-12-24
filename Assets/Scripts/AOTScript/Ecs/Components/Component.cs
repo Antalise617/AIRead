@@ -98,19 +98,7 @@ namespace GameFramework.ECS.Components
     }
 
     // 建筑相关 (FuncType 改为 int)
-    public struct BuildingComponent : IComponentData
-    {
-        public int ConfigId;
-        public int3 Size;
-        public int FuncType;
-    }
-
-    public struct VisitorCenterComponent : IComponentData
-    {
-        public int UnspawnedVisitorCount;
-        public float SpawnTimer;
-        public float SpawnInterval;
-    }
+    
 
     public struct BridgeComponent : IComponentData
     {
@@ -161,7 +149,22 @@ namespace GameFramework.ECS.Components
     }
 
 
-    #region 建筑功能相关组件
+    #region 建筑相关组件
+    public struct BuildingComponent : IComponentData
+    {
+        public int ConfigId;
+        public int Name;
+        public int3 Size;
+        public int BuildingType;
+        public int BuildingSubtype;
+    }
+
+    public struct VisitorCenterComponent : IComponentData
+    {
+        public int UnspawnedVisitorCount;
+        public float SpawnTimer;
+        public float SpawnInterval;
+    }
     /// <summary>
     /// 建筑生产组件
     /// </summary>

@@ -140,7 +140,7 @@ namespace GameFramework.ECS.Systems
                                 break;
                         }
 
-                        EntityManager.AddComponentData(spawned, new BuildingComponent { ConfigId = req.ObjectId, Size = req.Size, FuncType = fType });
+                        EntityManager.AddComponentData(spawned, new BuildingComponent { ConfigId = req.ObjectId, Size = req.Size, BuildingType = fType });
                         processed = true;
                     }
                 }
