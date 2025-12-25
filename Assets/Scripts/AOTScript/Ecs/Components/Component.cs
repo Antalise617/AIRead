@@ -216,6 +216,7 @@ namespace GameFramework.ECS.Components
         public bool IsActive;
         // public int CurrentReserves;   <-- [移除] 改为通过遍历 OutputElement 动态计算
     }
+    public struct HasProgressBarTag : IComponentData { }
     // 【修改】服务组件：单人服务模式
     public struct ServiceComponent : IComponentData
     {

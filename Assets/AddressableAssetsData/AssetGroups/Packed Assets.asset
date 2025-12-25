@@ -32,6 +32,11 @@ MonoBehaviour:
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 0d0fb6895083bda4595e63a7913ab2c5
+    m_Address: building_50501
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 1736713df23aa214aaa25cb92189642d
     m_Address: BuildingServicePanel
     m_ReadOnly: 0
@@ -42,8 +47,23 @@ MonoBehaviour:
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 18b547c6e8f796b4cbfe44d43a772634
+    m_Address: building_50701
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 19e2fb70b881d24409e6a0e8b4ccb68e
+    m_Address: building_20301
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 1a2c51d475467854cba971da77534515
     m_Address: building_50301
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 1ab5cb578d2b7a64c82d6a7ddb4d30f4
+    m_Address: building_30301
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
@@ -78,7 +98,7 @@ MonoBehaviour:
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 3f0d62f3967363c40aaa0d1b57c1d721
-    m_Address: Assets/Prefabs/Widget/IslandLittleProgressBarWidget.prefab
+    m_Address: LittleProgressBarWidget
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
@@ -87,8 +107,28 @@ MonoBehaviour:
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 471fd6b648ad3ca46822968d37deac10
+    m_Address: building_50801
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 480dd740e5b896a449f3841919cfea97
+    m_Address: building_30101
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 49569763ec62aa849b99afc2d0e060c6
+    m_Address: building_40301
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 4fe8c14a92bd823459094b01a20a5b28
     m_Address: 31002
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 51f26f604fd50534189a3ccaa0d1c45b
+    m_Address: building_20201
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
@@ -137,8 +177,18 @@ MonoBehaviour:
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 69dfbce1b33f98941b6d62847822560d
+    m_Address: building_30401
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 6d334c05baf0b71499ef2ad8fe421b54
     m_Address: Assets/Prefabs/Widget/IslandProgressBarWidget.prefab
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 6e0f3dfb89f7ad043a34d4fa20479222
+    m_Address: building_40601
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
@@ -233,6 +283,16 @@ MonoBehaviour:
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: c2443f0e4ec5c0844bfcc91a2cb68092
+    m_Address: building_40501
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: c4c2a2a2547cd374b86b918cdabe3eb2
+    m_Address: building_40101
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: ce094bccd2841954eb48b9167a712f2a
     m_Address: island_100003
     m_ReadOnly: 0
@@ -245,6 +305,26 @@ MonoBehaviour:
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: d21508c1a5dc72f40bfba9453a202ccb
     m_Address: 30005
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: d2762b252f0c24441873776e4d4adc82
+    m_Address: building_50101
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: da83ddeeddb9b0248ae378b4ce37c8fb
+    m_Address: building_50201
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: e50718601d7c2ff46b66c41b5d9198f1
+    m_Address: building_50601
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: e7582ac51211bef409b184c2df96390d
+    m_Address: building_40201
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
@@ -265,6 +345,11 @@ MonoBehaviour:
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: ef80f1a3c6e2151429c4567bbbcb7aa4
     m_Address: ClickIslandWidget
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: f3d12aac17dcd044fa1dafcbc5949cce
+    m_Address: building_30201
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0

@@ -20,26 +20,62 @@ namespace GameFramework.ECS.Systems
                 cellSize = SystemAPI.GetSingleton<GridConfigComponent>().CellSize;
             }
 
-            // 遍历所有处于 Moving 状态的游客
-            foreach (var (transform, visitor, gridPos, pathBuffer, visitedBuffer) in
-                     SystemAPI.Query<RefRW<LocalTransform>, RefRW<VisitorComponent>, RefRW<GridPositionComponent>, DynamicBuffer<PathBufferElement>, DynamicBuffer<VisitedBuildingElement>>())
+            // 【修改 1】添加 .WithEntityAccess() 以便获取游客自身的 Entity
+            foreach (var (transform, visitor, gridPos, pathBuffer, visitedBuffer, visitorEntity) in
+                     SystemAPI.Query<RefRW<LocalTransform>, RefRW<VisitorComponent>, RefRW<GridPositionComponent>, DynamicBuffer<PathBufferElement>, DynamicBuffer<VisitedBuildingElement>>()
+                     .WithEntityAccess())
             {
                 if (visitor.ValueRO.CurrentState != VisitorState.Moving) continue;
 
                 // 检查路径是否走完
                 if (pathBuffer.IsEmpty)
                 {
-                    // 路径走完 = 到达目的地
-                    visitor.ValueRW.CurrentState = VisitorState.Idle;
-                    visitor.ValueRW.StateTimer = 2.0f; // 在目的地停留 2 秒
+                    // === 到达目的地逻辑 ===
+                    Entity targetBuilding = visitor.ValueRO.TargetBuildingEntity;
+                    bool joinedQueue = false;
 
-                    // 记录已访问 (这里简单记录一下目标格子的假设ID，实际应该在 Behavior 阶段传过来)
-                    // 为了简化，我们假设到了目的地就完成了访问逻辑
-                    Debug.Log($"[Movement] 游客 {visitor.ValueRO.Name} 到达目的地!");
+                    // 【修改 2】检查目标建筑是否存在且具备服务功能
+                    if (targetBuilding != Entity.Null && SystemAPI.HasComponent<ServiceComponent>(targetBuilding))
+                    {
+                        // 获取建筑的服务组件和队列
+                        var serviceComp = SystemAPI.GetComponent<ServiceComponent>(targetBuilding);
+
+                        // 确保该建筑有队列Buffer (一般都有，但为了安全起见检查一下或者直接获取)
+                        if (SystemAPI.HasBuffer<ServiceQueueElement>(targetBuilding))
+                        {
+                            var queue = SystemAPI.GetBuffer<ServiceQueueElement>(targetBuilding);
+
+                            // 【修改 3】再次检查容量（防止路上队列满了）
+                            if (queue.Length < serviceComp.MaxVisitorCapacity)
+                            {
+                                // 加入队列
+                                queue.Add(new ServiceQueueElement { VisitorEntity = visitorEntity });
+
+                                // 切换状态为 Waiting (排队中)
+                                visitor.ValueRW.CurrentState = VisitorState.Waiting;
+                                joinedQueue = true;
+
+                                // Debug.Log($"[Movement] 游客 {visitor.ValueRO.Name} 已加入建筑 {targetBuilding.Index} 的排队队列 (当前: {queue.Length})");
+                            }
+                            else
+                            {
+                                // Debug.LogWarning($"[Movement] 游客 {visitor.ValueRO.Name} 到达但队列已满！");
+                            }
+                        }
+                    }
+
+                    // 如果没能成功加入队列（比如不是服务建筑，或者满了），则进入 Idle 状态
+                    if (!joinedQueue)
+                    {
+                        visitor.ValueRW.CurrentState = VisitorState.Idle;
+                        visitor.ValueRW.StateTimer = 2.0f; // 停留 2 秒后重新决策
+                        visitor.ValueRW.TargetBuildingEntity = Entity.Null; // 清除无效目标
+                    }
+
                     continue;
                 }
 
-                // === 移动逻辑 ===
+                // === 移动逻辑 (保持不变) ===
 
                 // 1. 获取下一个路点
                 int3 targetGrid = pathBuffer[0].GridPos;

@@ -57,7 +57,6 @@ namespace GameFramework.ECS.Systems
 
                 if (req.Type == PlacementType.Island)
                 {
-                    // ... (岛屿生成逻辑保持不变) ...
                     if (!_gridSystem.CheckIslandPlacement(req.Position, req.Size, req.AirspaceHeight))
                     {
                         EntityManager.DestroyEntity(entity);
@@ -92,15 +91,13 @@ namespace GameFramework.ECS.Systems
 
                     if (TrySpawnObject(req, out Entity spawned))
                     {
-                        // 1. 注册格子占用
+                        // 1. 注册与基础组件
                         _gridSystem.RegisterBuilding(req.Position, req.Size, new FixedString64Bytes(req.ObjectId.ToString()));
 
-                        // 2. 获取基础配置
                         int bType = GameConfigBridge.GetBuildingFunctionType(req.ObjectId);
                         string nameStr = GameConfigBridge.GetBuildingName(req.ObjectId);
                         int subtype = GameConfigBridge.GetBuildingSubtype(req.ObjectId);
 
-                        // 3. 添加通用建筑组件
                         EntityManager.AddComponentData(spawned, new BuildingComponent
                         {
                             ConfigId = req.ObjectId,
@@ -110,33 +107,22 @@ namespace GameFramework.ECS.Systems
                             Name = new FixedString64Bytes(nameStr)
                         });
 
-                        // 1. 繁荣度
                         int prosperity = GameConfigBridge.GetBuildingProsperity(req.ObjectId);
                         if (prosperity > 0)
                         {
-                            EntityManager.AddComponentData(spawned, new ProsperityComponent
-                            {
-                                Value = prosperity
-                            });
+                            EntityManager.AddComponentData(spawned, new ProsperityComponent { Value = prosperity });
                         }
 
-                        // 2. 电力
-                        // 即使耗电量为0，只要是功能建筑最好也挂上，方便统一管理，这里视耗电量>0挂载
                         int powerCost = GameConfigBridge.GetBuildingPowerConsumption(req.ObjectId);
                         if (powerCost > 0)
                         {
-                            EntityManager.AddComponentData(spawned, new ElectricityComponent
-                            {
-                                PowerConsumption = powerCost,
-                                IsPowered = true // 【需求】默认开启，假装有电
-                            });
+                            EntityManager.AddComponentData(spawned, new ElectricityComponent { PowerConsumption = powerCost, IsPowered = true });
                         }
 
-                        // 4. 根据 BuildingType 挂载功能组件 [引用: zsEnum.BuildingType]
+                        // 4. 根据 BuildingType 挂载功能组件
                         switch (bType)
                         {
-                            case 1: // Core (核心类)
-                                // 仅针对 VisitorCenter (Subtype 1) 挂载刷怪组件
+                            case 1: // Core
                                 if (subtype == 1)
                                 {
                                     var cfgVisitor = GameConfigBridge.GetVisitorCenterConfig(req.ObjectId);
@@ -148,51 +134,31 @@ namespace GameFramework.ECS.Systems
                                 }
                                 break;
 
-                            case 2: // Supply (供给类)
-                                // TODO: 未来实现供给类逻辑 (如发电站)
+                            case 2: // Supply
                                 break;
 
-                            case 3: // Factory / Production
+                            case 3: // Factory
                                 var factoryData = GameConfigBridge.GetFactoryConfig(req.ObjectId);
-
                                 if (factoryData.IsValid)
                                 {
-                                    // 1. 填充生产组件 (新增字段)
                                     EntityManager.AddComponentData(spawned, new ProductionComponent
                                     {
                                         ProductionInterval = factoryData.ProductionInterval,
                                         MaxReserves = factoryData.MaxReserves,
-                                        JobSlots = factoryData.JobSlots,             // [新增]
-                                        DemandOccupation = factoryData.DemandOccupation, // [新增]
+                                        JobSlots = factoryData.JobSlots,
+                                        DemandOccupation = factoryData.DemandOccupation,
                                         IsActive = true,
                                         Timer = 0f
                                     });
 
-                                    // 2. 填充岛屿亲和 Buffer [新增]
                                     var affinityBuffer = EntityManager.AddBuffer<IslandAffinityElement>(spawned);
-                                    foreach (var affinity in factoryData.IslandAffinity)
-                                    {
-                                        affinityBuffer.Add(new IslandAffinityElement { IslandType = affinity });
-                                    }
-
-                                    // 3. 填充原料 Buffer
+                                    foreach (var affinity in factoryData.IslandAffinity) affinityBuffer.Add(new IslandAffinityElement { IslandType = affinity });
                                     var inputBuffer = EntityManager.AddBuffer<ProductionInputElement>(spawned);
-                                    foreach (var input in factoryData.Inputs)
-                                    {
-                                        inputBuffer.Add(new ProductionInputElement { ItemId = input.x, Count = input.y });
-                                    }
-
-                                    // 4. 填充产出 Buffer (注意结构变化)
+                                    foreach (var input in factoryData.Inputs) inputBuffer.Add(new ProductionInputElement { ItemId = input.x, Count = input.y });
                                     var outputBuffer = EntityManager.AddBuffer<ProductionOutputElement>(spawned);
-                                    foreach (var output in factoryData.Outputs)
-                                    {
-                                        outputBuffer.Add(new ProductionOutputElement
-                                        {
-                                            ItemId = output.x,
-                                            CountPerCycle = output.y, // 配置产出量
-                                            CurrentStorage = 0        // 初始库存为0
-                                        });
-                                    }
+                                    foreach (var output in factoryData.Outputs) outputBuffer.Add(new ProductionOutputElement { ItemId = output.x, CountPerCycle = output.y, CurrentStorage = 0 });
+
+                                    // 【已移除】此处不再调用 UI 生成
                                 }
                                 else
                                 {
@@ -200,8 +166,7 @@ namespace GameFramework.ECS.Systems
                                 }
                                 break;
 
-                            case 4: // Service (Type 4)
-                                // A. 挂载生产功能 (后厂 - 保持不变)
+                            case 4: // Service
                                 var prodData = GameConfigBridge.GetFactoryConfig(req.ObjectId);
                                 if (prodData.IsValid)
                                 {
@@ -214,7 +179,6 @@ namespace GameFramework.ECS.Systems
                                         IsActive = true,
                                         Timer = 0f
                                     });
-                                    // ... (挂载 Production Buffer 代码保持不变) ...
                                     var inBuf = EntityManager.AddBuffer<ProductionInputElement>(spawned);
                                     foreach (var v in prodData.Inputs) inBuf.Add(new ProductionInputElement { ItemId = v.x, Count = v.y });
                                     var outBuf = EntityManager.AddBuffer<ProductionOutputElement>(spawned);
@@ -223,11 +187,9 @@ namespace GameFramework.ECS.Systems
                                     foreach (var v in prodData.IslandAffinity) affBuf.Add(new IslandAffinityElement { IslandType = v });
                                 }
 
-                                // B. 挂载服务功能 (前店 - 【修改】)
                                 var srvCfg = GameConfigBridge.GetServiceConfig(req.ObjectId);
                                 if (srvCfg.Found)
                                 {
-                                    // 1. 挂载简化后的服务组件
                                     EntityManager.AddComponentData(spawned, new ServiceComponent
                                     {
                                         ServiceConfigId = req.ObjectId,
@@ -239,20 +201,11 @@ namespace GameFramework.ECS.Systems
                                         IsServing = false,
                                         ServiceTimer = 0f
                                     });
-
-                                    // 2. 挂载游客队列 (仅此一个 Buffer)
                                     EntityManager.AddBuffer<ServiceQueueElement>(spawned);
-
-                                    // 【移除】不再需要 ServiceSlotElement Buffer
                                 }
-                                break;
 
-                            case 5: // Experience (体验类)
-                                // TODO: 未来实现体验类逻辑 (如游乐设施)
+                                // 【已移除】此处不再调用 UI 生成
                                 break;
-
-                                // case 6 (PublicBridge) 和 7 (StaffBridge) 通常由 PlacementType.Bridge 处理，
-                                // 但如果通过 PlacementType.Building 放置，可在此处扩展。
                         }
 
                         processed = true;
@@ -260,7 +213,6 @@ namespace GameFramework.ECS.Systems
                 }
                 else if (req.Type == PlacementType.Bridge)
                 {
-                    // ... (桥梁逻辑保持不变) ...
                     if (!_gridSystem.IsBridgeBuildable(req.Position))
                     {
                         EntityManager.DestroyEntity(entity);
@@ -282,7 +234,6 @@ namespace GameFramework.ECS.Systems
             requests.Dispose();
         }
 
-        // ... (其余辅助方法保持不变) ...
         private void InitializeIslandLogicAttributes(Entity islandEntity)
         {
             object rawCfg = GameConfigBridge.GetRandomFirstLevelIslandConfig();
