@@ -1,0 +1,60 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bbb281ee3bf0b054c82ac2347e9e782c, type: 3}
+  m_Name: AotMetadata
+  m_EditorClassIdentifier: 
+  m_GroupName: AotMetadata
+  m_Data:
+    m_SerializedData: []
+  m_GUID: b9bc1b29b906365418fa99f2e4d8847c
+  m_SerializeEntries:
+  - m_GUID: 103d07ff41c0cba4483c3356c450318a
+    m_Address: Unity.Entities.dll
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 2fbee5aab73aad74fa94668aecf5192c
+    m_Address: mscorlib.dll
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 4295faf23a1a5de4a891e301b0b9eb13
+    m_Address: System.dll
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 639dc4d0b45c5624a8229a20e06e8d93
+    m_Address: Unity.Mathematics.dll
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: e4f6055f8fc2d5049a7191f6f05bee39
+    m_Address: Unity.Physics.dll
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: eb7918522a18ba6469caa3aec6d27ad3
+    m_Address: Unity.Collections.dll
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: fb9a7bb6b6f6b0240a7dfacf1301f981
+    m_Address: System.Core.dll
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  m_ReadOnly: 0
+  m_Settings: {fileID: 11400000, guid: cc15f4d430e097c4f80e72e0071bd0a4, type: 2}
+  m_SchemaSet:
+    m_Schemas:
+    - {fileID: 11400000, guid: b79a8379a0d7f604694a3a31e796c2c8, type: 2}
+    - {fileID: 11400000, guid: 8cadb02f68340234b81aa4c76003dd29, type: 2}

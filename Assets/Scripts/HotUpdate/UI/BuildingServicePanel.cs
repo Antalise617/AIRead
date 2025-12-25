@@ -314,7 +314,7 @@ public class BuildingServicePanel : UIPanel
         var inputs = _entityManager.GetBuffer<ProductionInputElement>(_currentEntity);
         for (int i = 0; i < inputs.Length; i++)
         {
-            if (!GameInventoryBridge.HasItem(inputs[i].ItemId, inputs[i].Count)) return true;
+            if (!GlobalInventoryManager.Instance.HasItem(inputs[i].ItemId, inputs[i].Count)) return true;
         }
         return false;
     }

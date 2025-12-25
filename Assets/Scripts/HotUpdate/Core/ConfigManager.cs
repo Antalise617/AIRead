@@ -1,5 +1,5 @@
-using Cysharp.Threading.Tasks; // 引入 UniTask
 using cfg;
+using Cysharp.Threading.Tasks; // 引入 UniTask
 using GameFramework.Managers;  // 引入 ResourceManager
 using Luban;                   // 引入 Luban
 using UnityEngine;
@@ -12,7 +12,7 @@ namespace GameFramework.Core
         public GameConfig GameConfig => _gameConfig;
 
         // 添加 Luban 表的访问入口
-        public Tables Tables { get; private set; }
+        public cfg.Tables Tables { get; private set; }
 
         public void Initialize(GameConfig config)
         {
@@ -21,7 +21,7 @@ namespace GameFramework.Core
 
         public async UniTask LoadLubanTablesAsync()
         {
-            Tables = new Tables();
+            Tables = new cfg.Tables();
 
             await Tables.LoadAsync(async (file) =>
             {

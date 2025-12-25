@@ -7,7 +7,7 @@ using System;
 
 namespace Game.HotUpdate
 {
-    public class GlobalInventoryManager : Singleton<GlobalInventoryManager>, IGameInventoryService
+    public class GlobalInventoryManager : Singleton<GlobalInventoryManager>
     {
         private readonly Dictionary<int, long> _inventory = new Dictionary<int, long>();
         public event Action<int, long, long> OnItemChanged;
@@ -17,7 +17,6 @@ namespace Game.HotUpdate
         protected override void Awake()
         {
             base.Awake();
-            GameInventoryBridge.Service = this;
         }
 
         public void LoadInventory(Dictionary<int, long> savedData)

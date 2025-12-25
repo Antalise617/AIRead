@@ -1,3 +1,4 @@
+using GameFramework.ECS.Components;
 using GameFramework.Events;
 using System;
 using System.Collections.Generic;
@@ -133,7 +134,7 @@ namespace GameFramework.Core
         {
             Debug.Log("½øÈëÔÝÍ£×´Ì¬");
             Time.timeScale = 0f;
-            EventManager.Instance.Publish(new Events.GamePausedEvent { IsPaused = true });
+            EventManager.Instance.Publish(new GamePausedEvent { IsPaused = true });
         }
 
         public void OnUpdate(float deltaTime)
@@ -149,7 +150,7 @@ namespace GameFramework.Core
         {
             Debug.Log("ÍË³öÔÝÍ£×´Ì¬");
             Time.timeScale = 1f;
-            EventManager.Instance.Publish(new Events.GamePausedEvent { IsPaused = false });
+            EventManager.Instance.Publish(new GamePausedEvent { IsPaused = false });
         }
     }
 
