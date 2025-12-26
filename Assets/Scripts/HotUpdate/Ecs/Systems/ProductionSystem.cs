@@ -6,7 +6,8 @@ using Unity.Burst;
 using UnityEngine;
 using Cysharp.Threading.Tasks;
 using Unity.Collections;
-using Game.HotUpdate; // [新增] 引用 GlobalInventoryManager 命名空间
+using Game.HotUpdate;
+using GameFramework.HotUpdate.UI; // [新增] 引用 UI 具体的命名空间 (LittleProgressBarWidget 所在位置)
 
 namespace GameFramework.ECS.Systems
 {
@@ -68,7 +69,6 @@ namespace GameFramework.ECS.Systems
                 {
                     foreach (var inItem in inputs)
                     {
-                        // [修复] 使用 GlobalInventoryManager
                         if (!GlobalInventoryManager.Instance.HasItem(inItem.ItemId, inItem.Count))
                         {
                             hasIngredients = false;
@@ -98,7 +98,6 @@ namespace GameFramework.ECS.Systems
                     {
                         foreach (var inItem in inputs)
                         {
-                            // [修复] 使用 GlobalInventoryManager
                             if (!GlobalInventoryManager.Instance.TryConsumeItem(inItem.ItemId, inItem.Count))
                             {
                                 consumeSuccess = false;
@@ -148,11 +147,21 @@ namespace GameFramework.ECS.Systems
         private async UniTaskVoid CreateProgressBarAsync(Entity buildingEntity)
         {
             string widgetKey = "LittleProgressBarWidget";
-            var panel = await UIManager.Instance.ShowPanelAsync<UIFollowPanel>(widgetKey, UILayer.Normal);
 
-            if (panel != null)
+            // 【修改前】报错：CS7036
+            // var widget = await UIManager.Instance.ShowWidgetAsync<LittleProgressBarWidget>(widgetKey);
+
+            // 【修改后】传入 buildingEntity
+            var widget = await UIManager.Instance.ShowWidgetAsync<LittleProgressBarWidget>(
+                widgetKey,       // 参数1: 资源路径
+                buildingEntity   // 参数2: 目标实体 (修复点)
+            );
+
+            // 注意：ShowWidgetAsync 内部已经调用了 widget.Bind(target)，
+            // 所以这里不需要再次调用 panel.Bind(buildingEntity)，除非你有额外逻辑。
+            if (widget == null)
             {
-                panel.Bind(buildingEntity);
+                Debug.LogWarning($"[ProductionSystem] 无法加载进度条 Widget: {widgetKey}");
             }
         }
 
@@ -169,7 +178,6 @@ namespace GameFramework.ECS.Systems
                 var item = outputs[i];
                 if (item.CurrentStorage > 0)
                 {
-                    // [修复] 使用 GlobalInventoryManager
                     GlobalInventoryManager.Instance.AddItem(item.ItemId, item.CurrentStorage);
                     totalCollected += item.CurrentStorage;
                     Debug.Log($"[Production] 收取: ID {item.ItemId} x{item.CurrentStorage}");

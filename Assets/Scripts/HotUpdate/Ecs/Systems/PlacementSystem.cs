@@ -13,7 +13,7 @@ using UnityEngine.EventSystems;
 using Lean.Touch;
 using GameFramework.Events;
 using RaycastHit = Unity.Physics.RaycastHit;
-using cfg; // [新增] 引入配置表命名空间
+using cfg;
 
 namespace GameFramework.ECS.Systems
 {
@@ -271,12 +271,14 @@ namespace GameFramework.ECS.Systems
             }
         }
 
-        public void ConfirmPlacement()
+        // 【核心修改】返回值改为 bool：true 表示建造完成应退出模式，false 表示继续保持模式
+        public bool ConfirmPlacement()
         {
-            if (!SystemAPI.HasSingleton<PlacementStateComponent>()) return;
+            if (!SystemAPI.HasSingleton<PlacementStateComponent>()) return true;
             var stateRef = SystemAPI.GetSingletonRW<PlacementStateComponent>();
             ref var state = ref stateRef.ValueRW;
-            if (!state.IsActive || !state.IsPositionValid) return;
+            if (!state.IsActive || !state.IsPositionValid) return false;
+
             var gridConfig = SystemAPI.GetSingleton<GridConfigComponent>();
             int3 baseSize = GetObjectSizeFromConfig(state.CurrentObjectId, state.Type);
             int3 finalSize = (state.RotationIndex % 2 == 1) ? new int3(baseSize.z, baseSize.y, baseSize.x) : baseSize;
@@ -284,18 +286,26 @@ namespace GameFramework.ECS.Systems
             int airSpace = 4;
             if (state.Type == PlacementType.Island)
             {
-                // [修复] 直接查表获取空域高度
                 var islandCfg = ConfigManager.Instance.Tables.TbIsland.GetOrDefault(state.CurrentObjectId);
                 airSpace = islandCfg != null ? islandCfg.AirHeight : 4;
             }
 
             SendPlacementRequest(state.CurrentObjectId, state.Type, state.CurrentGridPos, finalSize, state.RotationIndex, airSpace);
 
-            // 使用事件通知
             EventManager.Instance.Publish(new ObjectBuiltEvent { Type = state.Type });
 
+            // 【核心修改】如果是桥梁，不退出建造模式，也不销毁预览物体
+            if (state.Type == PlacementType.Bridge)
+            {
+                Debug.Log("[PlacementSystem] 桥梁已放置，保持建造模式");
+                // 返回 false，告诉 UI 不要关闭
+                return false;
+            }
+
+            // 其他类型（建筑、岛屿）：正常退出
             state.IsActive = false;
             CleanupPreview();
+            return true;
         }
 
         public void CancelPlacement()
@@ -396,10 +406,6 @@ namespace GameFramework.ECS.Systems
 
             string resourcePath = "";
 
-            // [修改点] 统一改为查表获取 ResourceName
-            // 请确保你的 Excel 配置表中，ResourceName 填的是 "building_10101" 或 "bridge_300001" 这种简短名称
-            // 如果表中填的是完整路径，你需要去 Addressables Group 里把地址改回完整路径，或者修改表数据
-
             if (type == PlacementType.Building)
             {
                 var cfg = ConfigManager.Instance.Tables.TbBuild.GetOrDefault(configId);
@@ -412,7 +418,6 @@ namespace GameFramework.ECS.Systems
             }
             else if (type == PlacementType.Bridge)
             {
-                // [修复] 使用 TbBridgeConfig 查表，而不是硬编码路径
                 var cfg = ConfigManager.Instance.Tables.TbBridgeConfig.GetOrDefault(configId);
                 if (cfg != null)
                 {
@@ -420,14 +425,12 @@ namespace GameFramework.ECS.Systems
                 }
                 else
                 {
-                    // 兜底：如果没配表，尝试用简短名称 (匹配 Packed Assets 中的命名)
                     resourcePath = $"bridge_{configId}";
                 }
             }
 
             if (!string.IsNullOrEmpty(resourcePath))
             {
-                // ... (原有加载逻辑)
                 try
                 {
                     var prefab = await ResourceManager.Instance.LoadAssetAsync<GameObject>(resourcePath);
@@ -471,12 +474,10 @@ namespace GameFramework.ECS.Systems
 
         private int3 GetObjectSizeFromConfig(int objectId, PlacementType type)
         {
-            // [修复] 移除 Bridge，直接查表
             switch (type)
             {
                 case PlacementType.Building:
                     var bCfg = ConfigManager.Instance.Tables.TbBuild.GetOrDefault(objectId);
-                    // 假设建筑在数据表里的高度隐含为 1
                     return bCfg != null ? new int3(bCfg.Length, 1, bCfg.Width) : new int3(1, 1, 1);
 
                 case PlacementType.Island:

@@ -1,8 +1,8 @@
 using UnityEngine;
 using UnityEngine.UI;
 using GameFramework.UI;
-using GameFramework.Core; // 引用 AOT 定义的接口
-using GameFramework.ECS.Systems; // 引用 AOT 定义的 System
+using GameFramework.Core;
+using GameFramework.ECS.Systems;
 using Unity.Entities;
 using GameFramework.Managers;
 using GameFramework.ECS.Components;
@@ -18,7 +18,6 @@ namespace GameFramework.HotUpdate.UI
         private PlacementSystem _placementSystem;
         private Canvas _parentCanvas;
 
-        // 实现接口属性
         public bool IsVisible => gameObject.activeSelf;
 
         protected override void OnInit()
@@ -33,7 +32,6 @@ namespace GameFramework.HotUpdate.UI
                 btnRotate.onClick.AddListener(OnRotateClick);
             }
 
-            // 获取 ECS 系统引用 (Hotfix 可以引用 AOT)
             var world = World.DefaultGameObjectInjectionWorld;
             if (world != null)
             {
@@ -43,12 +41,26 @@ namespace GameFramework.HotUpdate.UI
 
         private void OnConfirmClick()
         {
-            if (_placementSystem != null) _placementSystem.ConfirmPlacement();
-            Hide();
+            if (_placementSystem != null)
+            {
+                // 【核心修改】检查 ConfirmPlacement 的返回值
+                // 如果返回 true，说明建造结束，关闭面板
+                // 如果返回 false (如桥梁)，说明继续建造，保持面板开启 (或等用户再次拖动时自动隐藏)
+                bool isFinished = _placementSystem.ConfirmPlacement();
+                if (isFinished)
+                {
+                    Hide();
+                }
+            }
+            else
+            {
+                Hide();
+            }
         }
 
         private void OnCancelClick()
         {
+            // 取消按钮逻辑不变：强制取消并退出
             if (_placementSystem != null) _placementSystem.CancelPlacement();
             Hide();
         }
@@ -58,7 +70,6 @@ namespace GameFramework.HotUpdate.UI
             if (_placementSystem != null) _placementSystem.RotatePreview();
         }
 
-        // 实现接口方法
         public void UpdatePosition(Vector3 worldPosition)
         {
             if (Camera.main == null || _parentCanvas == null) return;
