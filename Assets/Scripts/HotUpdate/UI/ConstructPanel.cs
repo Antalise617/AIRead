@@ -1,7 +1,5 @@
-ï»¿using System.Collections.Generic;
-using System.Linq;
-using cfg;
-using cfg.zsEnum;
+using System.Collections.Generic;
+using cfg; // ÒıÈëÅäÖÃ±íÃüÃû¿Õ¼ä
 using GameFramework.Core;
 using GameFramework.ECS.Components;
 using GameFramework.Managers;
@@ -10,210 +8,162 @@ using TMPro;
 using Unity.Entities;
 using UnityEngine;
 using UnityEngine.UI;
-using SuperScrollView;
 
 namespace GameFramework.HotUpdate.UI
 {
     /// <summary>
-    /// å»ºé€ é€‰æ‹©é¢æ¿ - åŒç½‘æ ¼æ˜¾ç¤ºç‰ˆ (é€‚é…æ¶ˆè€—æ˜¾ç¤º)
+    /// ½¨ÔìÑ¡ÔñÃæ°å
     /// </summary>
     public class ConstructPanel : UIPanel
     {
-        // === ä¸€çº§é¡µç­¾ ===
-        [UIBind] private Button m_btn_IslandButton;
-        [UIBind] private Button m_btn_BuildingButton;
-        [UIBind] private Button m_btn_BridgeButton;
-        [UIBind] private Button m_btn_CloseButton;
+        // === UI °ó¶¨²¿·Ö ===
+        [UIBind] private Button _btnIsland;
 
-        // === äºŒçº§é¡µç­¾ (å»ºç­‘ç±»å‹ç­›é€‰) ===
-        [UIBind] private Button m_btn_CenterButton;      // æ ¸å¿ƒç±» (Core)
-        [UIBind] private Button m_btn_ProvisionButton;   // ä¾›ç»™ç±» (Supply)
-        [UIBind] private Button m_btn_ProductionButton;  // äº§å‡ºç±» (Output)
-        [UIBind] private Button m_btn_ServiceButton;     // æœåŠ¡ç±» (Service)
-        [UIBind] private Button m_btn_ExperienceButton;  // ä½“éªŒç±» (Experience)
+        [UIBind] private Button _btnBuilding;
 
-        // === åˆ—è¡¨å®¹å™¨ (åˆ†é¡µæ˜¾ç¤º) ===
-        [UIBind] private LoopGridView m_obj_GridRoot1; // æ˜¾ç¤ºå‰4ä¸ª
-        [UIBind] private LoopGridView m_obj_GridRoot2; // æ˜¾ç¤ºå4ä¸ª
+        [UIBind] private Button _btnBridge;
 
-        // === å†…éƒ¨å˜é‡ ===
+        [UIBind] private Button _btnClose;
+
+        [UIBind] private GameObject _itemGridRoot;
+
+        // === ÄÚ²¿±äÁ¿ ===
+        private List<ConstructItemView> _itemViews = new List<ConstructItemView>();
         private PlacementType _currentType = PlacementType.Island;
-        private BuildingType _currentBuildingFilter = BuildingType.Core;
-        private System.Collections.IList _currentDataList;
-
-        private const int ITEMS_PER_GRID = 4;
+        private const int MaxItems = 18;
 
         protected override void OnInit()
         {
             base.OnInit();
 
-            // 1. æ³¨å†Œé¡µç­¾äº‹ä»¶
-            m_btn_IslandButton.onClick.AddListener(() => SwitchCategory(PlacementType.Island));
-            m_btn_BuildingButton.onClick.AddListener(() => SwitchCategory(PlacementType.Building));
-            m_btn_BridgeButton.onClick.AddListener(() => SwitchCategory(PlacementType.Bridge));
-            m_btn_CloseButton.onClick.AddListener(Hide);
+            // ×¢²á´óÀàÇĞ»»ÊÂ¼ş
+            _btnIsland.onClick.AddListener(() => SwitchCategory(PlacementType.Island));
+            _btnBuilding.onClick.AddListener(() => SwitchCategory(PlacementType.Building));
+            _btnBridge.onClick.AddListener(() => SwitchCategory(PlacementType.Bridge));
 
-            // 2. æ³¨å†ŒäºŒçº§é¡µç­¾äº‹ä»¶
-            m_btn_CenterButton.onClick.AddListener(() => SwitchBuildingFilter(BuildingType.Core));
-            m_btn_ProvisionButton.onClick.AddListener(() => SwitchBuildingFilter(BuildingType.Supply));
-            m_btn_ProductionButton.onClick.AddListener(() => SwitchBuildingFilter(BuildingType.Output));
-            m_btn_ServiceButton.onClick.AddListener(() => SwitchBuildingFilter(BuildingType.Service));
-            m_btn_ExperienceButton.onClick.AddListener(() => SwitchBuildingFilter(BuildingType.Experience));
+            // ×¢²á¹Ø±ÕÊÂ¼ş
+            _btnClose.onClick.AddListener(Hide);
 
-            // 3. åˆå§‹åŒ–ç½‘æ ¼
-            m_obj_GridRoot1.InitGridView(0, OnGetItemByIndex_Grid1);
-            m_obj_GridRoot2.InitGridView(0, OnGetItemByIndex_Grid2);
+            // === ³õÊ¼»¯ Item ÁĞ±í (ĞŞ¸Ä²¿·Ö) ===
+            // ±éÀú Grid ÏÂµÄËùÓĞ×Ó½Úµã£¬»ñÈ¡ Button ×é¼ş
+            foreach (Transform child in _itemGridRoot.transform)
+            {
+                Button btn = child.GetComponent<Button>();
+
+                // Ö»ÓĞ¹ÒÔØÁË Button ×é¼şµÄÎïÌå²Å±»ÊÓÎªÓĞĞ§ Item
+                if (btn != null)
+                {
+                    var itemView = new ConstructItemView(btn);
+                    int index = _itemViews.Count;
+
+                    // Ê¹ÓÃ´æ´¢µÄ Button ÒıÓÃ°ó¶¨µã»÷ÊÂ¼ş
+                    itemView.ItemButton.onClick.AddListener(() => OnItemClicked(index));
+
+                    _itemViews.Add(itemView);
+                }
+
+                if (_itemViews.Count >= MaxItems) break;
+            }
+
+            Debug.Log($"[ConstructPanel] ³õÊ¼»¯Íê³É£¬ÓĞĞ§°´Å¥ÊıÁ¿: {_itemViews.Count}");
         }
 
         protected override void OnShow()
         {
             base.OnShow();
+            // Ä¬ÈÏÏÔÊ¾µºÓì·ÖÀà
             SwitchCategory(PlacementType.Island);
         }
 
         private void SwitchCategory(PlacementType type)
         {
             _currentType = type;
-            bool isBuilding = (type == PlacementType.Building);
-            SetSubTabsVisible(isBuilding);
-
-            if (isBuilding)
-            {
-                SwitchBuildingFilter(BuildingType.Core);
-            }
-            else
-            {
-                RefreshData();
-            }
+            RefreshList();
         }
 
-        private void SwitchBuildingFilter(BuildingType filterType)
-        {
-            _currentBuildingFilter = filterType;
-            RefreshData();
-        }
-
-        private void SetSubTabsVisible(bool visible)
-        {
-            m_btn_CenterButton.gameObject.SetActive(visible);
-            m_btn_ProvisionButton.gameObject.SetActive(visible);
-            m_btn_ProductionButton.gameObject.SetActive(visible);
-            m_btn_ServiceButton.gameObject.SetActive(visible);
-            m_btn_ExperienceButton.gameObject.SetActive(visible);
-        }
-
-        private void RefreshData()
+        /// <summary>
+        /// Ë¢ĞÂÁĞ±íÄÚÈİ
+        /// </summary>
+        private void RefreshList()
         {
             var tables = ConfigManager.Instance.Tables;
             if (tables == null) return;
 
-            // è·å–æ•°æ®æº
+            // »ñÈ¡¶ÔÓ¦Êı¾İÁĞ±í
+            System.Collections.IList dataList = null;
+
             switch (_currentType)
             {
                 case PlacementType.Island:
-                    _currentDataList = tables.TbIsland.DataList;
+                    dataList = tables.IslandCfg.DataList;
                     break;
-
                 case PlacementType.Building:
-                    _currentDataList = tables.TbBuild.DataList
-                        .Where(data => data.BuildingType == _currentBuildingFilter)
-                        .ToList();
+                    dataList = tables.BuildingCfg.DataList;
                     break;
-
                 case PlacementType.Bridge:
-                    _currentDataList = tables.TbBridgeConfig.DataList;
+                    dataList = tables.BridgeCfg.DataList;
                     break;
             }
 
-            // åˆ†é…æ•°æ®åˆ°ä¸¤ä¸ªç½‘æ ¼
-            int totalCount = _currentDataList?.Count ?? 0;
-            int count1 = Mathf.Min(totalCount, ITEMS_PER_GRID);
-            int count2 = Mathf.Clamp(totalCount - ITEMS_PER_GRID, 0, ITEMS_PER_GRID);
+            if (dataList == null) return;
 
-            m_obj_GridRoot1.SetListItemCount(count1, resetPos: true);
-            m_obj_GridRoot1.RefreshAllShownItem();
+            for (int i = 0; i < _itemViews.Count; i++)
+            {
+                if (i < dataList.Count)
+                {
+                    // ÓĞÊı¾İ£ºÏÔÊ¾²¢ÉèÖÃ
+                    _itemViews[i].SetActive(true);
 
-            m_obj_GridRoot2.SetListItemCount(count2, resetPos: true);
-            m_obj_GridRoot2.RefreshAllShownItem();
-        }
+                    var itemData = dataList[i];
+                    int id = 0;
+                    string name = "Unknown";
 
-        // --- Grid å›è°ƒ ---
-        private LoopGridViewItem OnGetItemByIndex_Grid1(LoopGridView gridView, int itemIndex, int rowIndex, int colIndex)
-        {
-            return GetItemByIndexInternal(gridView, itemIndex, 0);
-        }
+                    // Ê¹ÓÃÄ£Ê½Æ¥Åä»ñÈ¡ÊôĞÔ£¬±ÜÃâ dynamic ÎÊÌâ
+                    if (itemData is Island_Config island)
+                    {
+                        id = island.Id;
+                        name = island.Name;
+                    }
+                    else if (itemData is Building_Config building)
+                    {
+                        id = building.Id;
+                        name = building.Name;
+                    }
+                    else if (itemData is Bridge_Config bridge)
+                    {
+                        id = bridge.Id;
+                        name = $"ÇÅÁº {bridge.Id}"; // ÇÅÁº±í¿ÉÄÜÃ»ÓĞ Name ×Ö¶Î
+                    }
 
-        private LoopGridViewItem OnGetItemByIndex_Grid2(LoopGridView gridView, int itemIndex, int rowIndex, int colIndex)
-        {
-            return GetItemByIndexInternal(gridView, itemIndex, ITEMS_PER_GRID);
+                    _itemViews[i].SetData(id, name);
+                }
+                else
+                {
+                    // ÎŞÊı¾İ£ºÒş²Ø
+                    _itemViews[i].SetActive(false);
+                }
+            }
         }
 
         /// <summary>
-        /// æ ¸å¿ƒæ–¹æ³•ï¼šåˆ›å»º Item å¹¶å¡«å……æ•°æ®ï¼ˆåŒ…å«æ¶ˆè€—ä¿¡æ¯ï¼‰
+        /// µã»÷¾ßÌåÎïÆ·
         /// </summary>
-        private LoopGridViewItem GetItemByIndexInternal(LoopGridView gridView, int itemIndex, int dataOffset)
+        private void OnItemClicked(int index)
         {
-            int realDataIndex = itemIndex + dataOffset;
+            if (index < 0 || index >= _itemViews.Count) return;
 
-            if (_currentDataList == null || realDataIndex < 0 || realDataIndex >= _currentDataList.Count)
-                return null;
+            int objectId = _itemViews[index].DataId;
+            Debug.Log($"[ConstructPanel] Ñ¡ÖĞÎïÌå ID: {objectId}");
 
-            LoopGridViewItem item = gridView.NewListViewItem("ConstructButton");
-            if (item == null) return null;
-
-            var itemView = item.GetComponent<ConstructItemViewScript>();
-            if (itemView == null) return item;
-
-            // è§£æ Luban æ•°æ®
-            var itemData = _currentDataList[realDataIndex];
-            int id = 0;
-            string name = "Unknown";
-            List<List<int>> costs = null; // å­˜å‚¨æ¶ˆè€—æ•°æ® [[id, count], ...]
-
-            var tables = ConfigManager.Instance.Tables;
-
-            if (itemData is Island island)
-            {
-                id = island.Id;
-                name = island.Name;
-                // å²›å±¿æ¶ˆè€—é€šå¸¸åœ¨å…¨å±€é…ç½®ä¸­å®šä¹‰
-                if (tables.TbGameConfig.DataList.Count > 0)
-                {
-                    costs = tables.TbGameConfig.DataList[0].IslandConstructionCosts;
-                }
-            }
-            else if (itemData is Build building)
-            {
-                id = building.Id;
-                name = building.Name;
-
-                // å°è¯•ä» BuildingLevel è¡¨ä¸­æŸ¥æ‰¾å¯¹åº”çš„å»ºé€ æ¶ˆè€— (å‡è®¾ Build.Id å¯¹åº” Level 1 çš„é…ç½®)
-                // æ³¨æ„ï¼šå¦‚æœæ‚¨çš„è¡¨ç»“æ„ä¸åŒï¼ˆæ¯”å¦‚ ID ä¸ç›´æ¥å¯¹åº”ï¼‰ï¼Œè¯·æ ¹æ®å®é™…æƒ…å†µä¿®æ”¹ key
-                var levelData = tables.TbBuildingLevel.GetOrDefault(id);
-                if (levelData != null)
-                {
-                    costs = levelData.UpCost; // ä½¿ç”¨å‡çº§/å»ºé€ æ¶ˆè€—å­—æ®µ
-                }
-            }
-            else if (itemData is BridgeConfig bridge)
-            {
-                id = bridge.Id;
-                name = bridge.Name;
-                // æ¡¥æ¢ç›®å‰è¡¨ä¸­æ²¡æœ‰ç›´æ¥çš„æ¶ˆè€—å­—æ®µï¼Œå¦‚æœéœ€è¦å¯åœ¨æ­¤å¤„æ‰‹åŠ¨æ„é€ æˆ–ä»å…¶ä»–è¡¨è¯»å–
-                // costs = new List<List<int>> { new List<int> { 1001, 10 } }; // ç¤ºä¾‹ï¼š10ä¸ªæœ¨å¤´
-            }
-
-            // ã€å…³é”®ä¿®æ”¹ã€‘ä¼ é€’ costs æ•°æ®ç»™ Item
-            itemView.SetData(id, name, costs, () => OnItemClicked(id));
-
-            item.ItemIndex = itemIndex;
-            return item;
+            TriggerPlacementSystem(objectId, _currentType);
+            Hide();
         }
 
-        private void OnItemClicked(int objectId)
+        /// <summary>
+        /// ´¥·¢ ECS ·ÅÖÃÏµÍ³
+        /// </summary>
+        private void TriggerPlacementSystem(int objectId, PlacementType type)
         {
-            Debug.Log($"[ConstructPanel] é€‰ä¸­ç‰©ä½“ ID: {objectId}");
-
             var world = World.DefaultGameObjectInjectionWorld;
             if (world == null) return;
 
@@ -226,14 +176,45 @@ namespace GameFramework.HotUpdate.UI
                 var state = entityManager.GetComponentData<PlacementStateComponent>(entity);
 
                 state.IsActive = true;
-                state.Type = _currentType;
+                state.Type = type;
                 state.CurrentObjectId = objectId;
                 state.RotationIndex = 0;
 
                 entityManager.SetComponentData(entity, state);
             }
+        }
 
-            Hide();
+        // =========================================================
+        // ÄÚ²¿Àà£ºItem ÊÓÍ¼°ü×°Æ÷ (ÒÑĞŞ¸ÄÎªÖ±½Ó³ÖÓĞ Button)
+        // =========================================================
+        private class ConstructItemView
+        {
+            // Ö±½Ó¼ÇÂ¼ Button ÒıÓÃ
+            public Button ItemButton;
+            public TextMeshProUGUI NameText;
+            public int DataId;
+
+            public ConstructItemView(Button button)
+            {
+                ItemButton = button;
+                // ³¢ÊÔÔÚ Button µÄ×Ó½ÚµãÖĞ²éÕÒ TextMeshProUGUI
+                NameText = button.GetComponentInChildren<TextMeshProUGUI>();
+            }
+
+            public void SetActive(bool active)
+            {
+                // Í¨¹ı Button ÒıÓÃÉèÖÃ GameObject µÄÏÔÒş
+                ItemButton.gameObject.SetActive(active);
+            }
+
+            public void SetData(int id, string name)
+            {
+                DataId = id;
+                if (NameText != null)
+                {
+                    NameText.text = name;
+                }
+            }
         }
     }
 }

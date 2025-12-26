@@ -5,7 +5,6 @@ using GameFramework.Core; // 引用 AOT 定义的接口
 using GameFramework.ECS.Systems; // 引用 AOT 定义的 System
 using Unity.Entities;
 using GameFramework.Managers;
-using GameFramework.ECS.Components;
 
 namespace GameFramework.HotUpdate.UI
 {

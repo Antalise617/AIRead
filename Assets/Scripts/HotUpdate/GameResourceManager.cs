@@ -2,7 +2,6 @@ using UnityEngine;
 using System.Collections.Generic;
 using GameFramework.Events; // 引用事件系统
 using System;
-using GameFramework.ECS.Components;
 
 namespace GameFramework.Managers
 {
@@ -90,9 +89,31 @@ namespace GameFramework.Managers
             // 通知 UI 清零
             foreach (ResourceType type in Enum.GetValues(typeof(ResourceType)))
             {
-                IGameEvent evt = new ResourceChangedEvent(type, 0, 0);
-                EventManager.Instance.Publish((ResourceChangedEvent)evt);
+                EventManager.Instance.Publish(new ResourceChangedEvent(type, 0, 0));
             }
+        }
+    }
+    // 资源类型枚举保持不变
+    public enum ResourceType
+    {
+        Wood = 0,   // 木头
+        Stone = 1,  // 石头
+        Gold = 2,   // 金币
+        Food = 3    // 食物
+    }
+
+    // ★ 关键修改：实现 IGameEvent 接口
+    public struct ResourceChangedEvent : IGameEvent
+    {
+        public ResourceType Type;
+        public int NewValue;
+        public int Delta; // 变化量
+
+        public ResourceChangedEvent(ResourceType type, int newValue, int delta)
+        {
+            Type = type;
+            NewValue = newValue;
+            Delta = delta;
         }
     }
 }

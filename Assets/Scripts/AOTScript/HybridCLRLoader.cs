@@ -16,15 +16,7 @@ public class HybridCLRLoader : MonoBehaviour
     };
 
     // 如果使用了 AOT 泛型补充，在这里填 AOT DLL 的地址 (例如 "Assembly_mscorlib")
-    public List<string> aotMetadataDllAddresses = new List<string>() {
-        "Unity.Entities.dll",
-        "mscorlib.dll",
-        "System.dll",
-        "Unity.Mathematics.dll",      // ★ 必须
-        "Unity.Physics.dll",   // ★ 必须
-        "Unity.Collections.dll",
-        "System.Core.dll"
-    };
+    public List<string> aotMetadataDllAddresses = new List<string>();
 
     void Start()
     {

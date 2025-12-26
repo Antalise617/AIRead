@@ -458,14 +458,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   hotUpdateDllAddresses:
   - Assembly_Game.HotFix
-  aotMetadataDllAddresses:
-  - Unity.Entities.dll
-  - mscorlib.dll
-  - System.dll
-  - Unity.Mathematics.dll
-  - Unity.Physics.dll
-  - Unity.Collections.dll
-  - System.Core.dll
+  aotMetadataDllAddresses: []
 --- !u!4 &1121041505
 Transform:
   m_ObjectHideFlags: 0

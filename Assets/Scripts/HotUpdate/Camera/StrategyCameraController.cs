@@ -33,7 +33,7 @@ namespace GameFramework.Gameplay
         [Tooltip("启用鼠标边缘滚动")]
         public bool enableEdgeScroll = true;
         [Tooltip("边缘检测的宽度（像素）")]
-        public float edgeBorder = 0;
+        public float edgeBorder = 150f;
         [Tooltip("触摸移动的灵敏度")]
         public float touchPanSensitivity = 0.25f; // 根据需要调整，越小移动越慢
         [Tooltip("触摸旋转的灵敏度")]

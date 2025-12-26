@@ -21,12 +21,11 @@
         "GUID:e00140a815de944528348782854abe39",
         "GUID:c5ecc461727906345a35491a0440694f",
         "GUID:75469ad4d38634e559750d17036d5f7c",
-        "GUID:688cfbbe2a536604ab4aa06ececa1da3",
-        "GUID:7293c580bc63d384882dc455bb093e64"
+        "GUID:688cfbbe2a536604ab4aa06ececa1da3"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
-    "allowUnsafeCode": true,
+    "allowUnsafeCode": false,
     "overrideReferences": false,
     "precompiledReferences": [],
     "autoReferenced": true,

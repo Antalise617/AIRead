@@ -15,40 +15,20 @@ namespace cfg
 {
 public partial class Tables
 {
-    public zs.TbBuild TbBuild {get; private set; }
-    public zs.TbBuildingLevel TbBuildingLevel {get; private set; }
-    public zs.TbItem TbItem {get; private set; }
-    public zs.TbMapBoundary TbMapBoundary {get; private set; }
-    public zs.TbQuestCondition TbQuestCondition {get; private set; }
-    public zs.TbTask TbTask {get; private set; }
-    public zs.TbGameConfig TbGameConfig {get; private set; }
-    public zs.TbProsperity TbProsperity {get; private set; }
-    public zs.TbEmployee TbEmployee {get; private set; }
-    public zs.TbTourist TbTourist {get; private set; }
-    public zs.TbIsland TbIsland {get; private set; }
-    public zs.TbIslandLevel TbIslandLevel {get; private set; }
-    public zs.TbBuildingUnlock TbBuildingUnlock {get; private set; }
-    public zs.TbGuideStep TbGuideStep {get; private set; }
-    public zs.TbBridgeConfig TbBridgeConfig {get; private set; }
+    public Framework.ChapterCfg ChapterCfg {get; private set; }
+    public IslandCfg IslandCfg {get; private set; }
+    public BuildingCfg BuildingCfg {get; private set; }
+    public BridgeCfg BridgeCfg {get; private set; }
+    public GuideCfg Guide_Cfg {get; private set; }
 
     /// public Tables(System.Func<string, ByteBuf> loader)
     public Tables()
     {
-        ///        /// TbBuild = new zs.TbBuild(loader("zs_tbbuild"));
-        ///        /// TbBuildingLevel = new zs.TbBuildingLevel(loader("zs_tbbuildinglevel"));
-        ///        /// TbItem = new zs.TbItem(loader("zs_tbitem"));
-        ///        /// TbMapBoundary = new zs.TbMapBoundary(loader("zs_tbmapboundary"));
-        ///        /// TbQuestCondition = new zs.TbQuestCondition(loader("zs_tbquestcondition"));
-        ///        /// TbTask = new zs.TbTask(loader("zs_tbtask"));
-        ///        /// TbGameConfig = new zs.TbGameConfig(loader("zs_tbgameconfig"));
-        ///        /// TbProsperity = new zs.TbProsperity(loader("zs_tbprosperity"));
-        ///        /// TbEmployee = new zs.TbEmployee(loader("zs_tbemployee"));
-        ///        /// TbTourist = new zs.TbTourist(loader("zs_tbtourist"));
-        ///        /// TbIsland = new zs.TbIsland(loader("zs_tbisland"));
-        ///        /// TbIslandLevel = new zs.TbIslandLevel(loader("zs_tbislandlevel"));
-        ///        /// TbBuildingUnlock = new zs.TbBuildingUnlock(loader("zs_tbbuildingunlock"));
-        ///        /// TbGuideStep = new zs.TbGuideStep(loader("zs_tbguidestep"));
-        ///        /// TbBridgeConfig = new zs.TbBridgeConfig(loader("zs_tbbridgeconfig"));
+        ///        /// ChapterCfg = new Framework.ChapterCfg(loader("framework_chaptercfg"));
+        ///        /// IslandCfg = new IslandCfg(loader("islandcfg"));
+        ///        /// BuildingCfg = new BuildingCfg(loader("buildingcfg"));
+        ///        /// BridgeCfg = new BridgeCfg(loader("bridgecfg"));
+        ///        /// GuideCfg = new GuideCfg(loader("guidecfg"));
         ///        /// ResolveRef();
     }
 
@@ -58,78 +38,28 @@ public partial class Tables
 		List<UniTask> list = new List<UniTask>();
 		list.Add(UniTask.Create(async () =>
 		{
-			TbBuild = new zs.TbBuild(await loader("zs_tbbuild")); 
-			tables.Add("zs.TbBuild", TbBuild);
+			ChapterCfg = new Framework.ChapterCfg(await loader("framework_chaptercfg")); 
+			tables.Add("Framework.ChapterCfg", ChapterCfg);
 		}));
 		list.Add(UniTask.Create(async () =>
 		{
-			TbBuildingLevel = new zs.TbBuildingLevel(await loader("zs_tbbuildinglevel")); 
-			tables.Add("zs.TbBuildingLevel", TbBuildingLevel);
+			IslandCfg = new IslandCfg(await loader("islandcfg")); 
+			tables.Add("IslandCfg", IslandCfg);
 		}));
 		list.Add(UniTask.Create(async () =>
 		{
-			TbItem = new zs.TbItem(await loader("zs_tbitem")); 
-			tables.Add("zs.TbItem", TbItem);
+			BuildingCfg = new BuildingCfg(await loader("buildingcfg")); 
+			tables.Add("BuildingCfg", BuildingCfg);
 		}));
 		list.Add(UniTask.Create(async () =>
 		{
-			TbMapBoundary = new zs.TbMapBoundary(await loader("zs_tbmapboundary")); 
-			tables.Add("zs.TbMapBoundary", TbMapBoundary);
+			BridgeCfg = new BridgeCfg(await loader("bridgecfg")); 
+			tables.Add("BridgeCfg", BridgeCfg);
 		}));
 		list.Add(UniTask.Create(async () =>
 		{
-			TbQuestCondition = new zs.TbQuestCondition(await loader("zs_tbquestcondition")); 
-			tables.Add("zs.TbQuestCondition", TbQuestCondition);
-		}));
-		list.Add(UniTask.Create(async () =>
-		{
-			TbTask = new zs.TbTask(await loader("zs_tbtask")); 
-			tables.Add("zs.TbTask", TbTask);
-		}));
-		list.Add(UniTask.Create(async () =>
-		{
-			TbGameConfig = new zs.TbGameConfig(await loader("zs_tbgameconfig")); 
-			tables.Add("zs.TbGameConfig", TbGameConfig);
-		}));
-		list.Add(UniTask.Create(async () =>
-		{
-			TbProsperity = new zs.TbProsperity(await loader("zs_tbprosperity")); 
-			tables.Add("zs.TbProsperity", TbProsperity);
-		}));
-		list.Add(UniTask.Create(async () =>
-		{
-			TbEmployee = new zs.TbEmployee(await loader("zs_tbemployee")); 
-			tables.Add("zs.TbEmployee", TbEmployee);
-		}));
-		list.Add(UniTask.Create(async () =>
-		{
-			TbTourist = new zs.TbTourist(await loader("zs_tbtourist")); 
-			tables.Add("zs.TbTourist", TbTourist);
-		}));
-		list.Add(UniTask.Create(async () =>
-		{
-			TbIsland = new zs.TbIsland(await loader("zs_tbisland")); 
-			tables.Add("zs.TbIsland", TbIsland);
-		}));
-		list.Add(UniTask.Create(async () =>
-		{
-			TbIslandLevel = new zs.TbIslandLevel(await loader("zs_tbislandlevel")); 
-			tables.Add("zs.TbIslandLevel", TbIslandLevel);
-		}));
-		list.Add(UniTask.Create(async () =>
-		{
-			TbBuildingUnlock = new zs.TbBuildingUnlock(await loader("zs_tbbuildingunlock")); 
-			tables.Add("zs.TbBuildingUnlock", TbBuildingUnlock);
-		}));
-		list.Add(UniTask.Create(async () =>
-		{
-			TbGuideStep = new zs.TbGuideStep(await loader("zs_tbguidestep")); 
-			tables.Add("zs.TbGuideStep", TbGuideStep);
-		}));
-		list.Add(UniTask.Create(async () =>
-		{
-			TbBridgeConfig = new zs.TbBridgeConfig(await loader("zs_tbbridgeconfig")); 
-			tables.Add("zs.TbBridgeConfig", TbBridgeConfig);
+			Guide_Cfg = new GuideCfg(await loader("guidecfg")); 
+			tables.Add("GuideCfg", Guide_Cfg);
 		}));
 
 		await UniTask.WhenAll(list);
@@ -139,21 +69,11 @@ public partial class Tables
     
     private void ResolveRef()
     {
-        TbBuild.ResolveRef(this);
-        TbBuildingLevel.ResolveRef(this);
-        TbItem.ResolveRef(this);
-        TbMapBoundary.ResolveRef(this);
-        TbQuestCondition.ResolveRef(this);
-        TbTask.ResolveRef(this);
-        TbGameConfig.ResolveRef(this);
-        TbProsperity.ResolveRef(this);
-        TbEmployee.ResolveRef(this);
-        TbTourist.ResolveRef(this);
-        TbIsland.ResolveRef(this);
-        TbIslandLevel.ResolveRef(this);
-        TbBuildingUnlock.ResolveRef(this);
-        TbGuideStep.ResolveRef(this);
-        TbBridgeConfig.ResolveRef(this);
+        ChapterCfg.ResolveRef(this);
+        IslandCfg.ResolveRef(this);
+        BuildingCfg.ResolveRef(this);
+        BridgeCfg.ResolveRef(this);
+        Guide_Cfg.ResolveRef(this);
     }
 }
 
