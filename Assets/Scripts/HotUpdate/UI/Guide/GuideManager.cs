@@ -1,4 +1,5 @@
 using cfg;
+using cfg.zs;
 using GameFramework.Core;
 using UnityEngine;
 
@@ -10,14 +11,14 @@ namespace GameHotfix.Guide
         public static GuideManager Instance => _instance ??= new GuideManager();
 
         private GuidePanel _uiView;
-        private Guide_Cfg _currentConfig; // Luban生成的配置类
+        private GuideStep _currentConfig; // Luban生成的配置类
 
         // 启动某一组引导
         public void StartGuideGroup(int groupId)
         {
             // 从Luban表中查找该组的第一步 (这里假设你遍历表或者有辅助索引)
             // 示例逻辑：
-            var config = ConfigManager.Instance.Tables.Guide_Cfg;
+            var config = ConfigManager.Instance.Tables.TbGuideStep;
             foreach (var data in config.DataList)
             {
                 if (data.GroupId == groupId)
@@ -28,7 +29,7 @@ namespace GameHotfix.Guide
             }
         }
 
-        private void EnterStep(Guide_Cfg stepCfg)
+        private void EnterStep(GuideStep stepCfg)
         {
             _currentConfig = stepCfg;
 
@@ -75,7 +76,7 @@ namespace GameHotfix.Guide
             // 完成当前步，检查NextId
             if (_currentConfig.NextId != 0)
             {
-                var config = ConfigManager.Instance.Tables.Guide_Cfg;
+                var config = ConfigManager.Instance.Tables.TbGuideStep;
                 var nextData = config.Get(_currentConfig.NextId);
                 EnterStep(nextData);
             }

@@ -17,10 +17,6 @@ namespace cfg.task
         /// 建造
         /// </summary>
         Build = 1,
-        /// <summary>
-        /// 收集
-        /// </summary>
-        Collect = 2,
     }
 
 } 

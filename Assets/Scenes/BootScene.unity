@@ -26,7 +26,7 @@ RenderSettings:
   m_AmbientIntensity: 1
   m_AmbientMode: 0
   m_SubtractiveShadowColor: {r: 0.42, g: 0.478, b: 0.627, a: 1}
-  m_SkyboxMaterial: {fileID: 10304, guid: 0000000000000000f000000000000000, type: 0}
+  m_SkyboxMaterial: {fileID: 2100000, guid: 3785ce9c014ff478789f18c7f2b7c4e1, type: 2}
   m_HaloStrength: 0.5
   m_FlareStrength: 1
   m_FlareFadeSpeed: 3
@@ -97,7 +97,8 @@ LightmapSettings:
     m_TrainingDataDestination: TrainingData
     m_LightProbeSampleCountMultiplier: 4
   m_LightingDataAsset: {fileID: 0}
-  m_LightingSettings: {fileID: 0}
+  m_LightingSettings: {fileID: 4890085278179872738, guid: b75f4ad47a12b4b4eb8da718577bc3d5,
+    type: 2}
 --- !u!196 &4
 NavMeshSettings:
   serializedVersion: 2
@@ -458,7 +459,14 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   hotUpdateDllAddresses:
   - Assembly_Game.HotFix
-  aotMetadataDllAddresses: []
+  aotMetadataDllAddresses:
+  - Unity.Entities.dll
+  - mscorlib.dll
+  - System.dll
+  - Unity.Mathematics.dll
+  - Unity.Physics.dll
+  - Unity.Collections.dll
+  - System.Core.dll
 --- !u!4 &1121041505
 Transform:
   m_ObjectHideFlags: 0

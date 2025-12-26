@@ -1,12 +1,9 @@
 using GameFramework.Managers;
 using GameFramework.UI;
-using GameFramework.Core;
 using GameFramework.Events;
 using TMPro;
 using UnityEngine;
-using UnityEngine.UI;
-using Cysharp.Threading.Tasks; // 引用 UniTask
-using GameFramework.HotUpdate.UI; // 引用 ConstructPanel 所在的命名空间
+using GameFramework.ECS.Components;
 
 // 定义任务更新事件
 public struct TaskUpdatedEvent : IGameEvent
@@ -56,13 +53,5 @@ public class TaskPanel : UIPanel
         {
             Debug.LogError("[TaskPanel] 未找到 m_tmp_TaskContent 组件，请检查命名是否匹配！");
         }
-
-        // 如果你也想在任务全部完成后隐藏UI，可以解开下面的注释
-        /*
-        if (evt.IsFinished && m_TaskContainer != null)
-        {
-            m_TaskContainer.SetActive(false);
-        }
-        */
     }
 }
