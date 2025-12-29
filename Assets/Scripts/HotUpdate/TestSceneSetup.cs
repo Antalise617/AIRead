@@ -24,7 +24,7 @@ namespace GameFramework.Examples
 
             var entityManager = World.DefaultGameObjectInjectionWorld.EntityManager;
             var factory = new EntityFactory(entityManager);
-            _ = UIManager.Instance.ShowPanelAsync<MainPanel>("MainPanel");
+            //_ = UIManager.Instance.ShowPanelAsync<MainPanel>("MainPanel");
         }
 
         private void CreateEnvironment()

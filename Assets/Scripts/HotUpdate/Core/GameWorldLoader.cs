@@ -1,21 +1,34 @@
 using UnityEngine;
 using Unity.Entities;
 using Unity.Mathematics;
-using GameFramework.ECS.Components; // 引用 PlaceObjectRequest
-using GameFramework.ECS.Systems; // 引用 PlacementType
-using HotUpdate.Core; // 引用 ConfigManager
-using cfg; // 引用 Luban 配置表
+using GameFramework.ECS.Components;
+using GameFramework.ECS.Systems;
+using HotUpdate.Core;
+using cfg;
 using GameFramework.Managers;
+using Cysharp.Threading.Tasks;
 
 namespace GameFramework.Core
 {
     public class GameWorldLoader : MonoBehaviour
     {
+        private void Awake()
+        {
+            Debug.Log("<color=cyan>[GameWorldLoader] Awake: 脚本已启动，准备接收数据。</color>");
+        }
+
         private void Start()
         {
             if (NetworkManager.Instance != null)
             {
                 NetworkManager.Instance.OnJoinGameSuccess += OnJoinGameSuccess;
+
+                // 检查是否已经错过了事件（如果有缓存数据，直接加载）
+                if (NetworkManager.Instance.CurrentGameData != null)
+                {
+                    Debug.Log("[GameWorldLoader] Start: 发现缓存数据，立即生成！");
+                    OnJoinGameSuccess(NetworkManager.Instance.CurrentGameData);
+                }
             }
         }
 
@@ -27,25 +40,28 @@ namespace GameFramework.Core
             }
         }
 
-        /// <summary>
-        /// 收到加入游戏成功事件，开始加载世界
-        /// </summary>
         private void OnJoinGameSuccess(GamesDTO data)
         {
-            Debug.Log($"[GameWorldLoader] 开始初始化世界... 地块数: {data.Tile?.Count ?? 0}, 建筑数: {data.Building?.Count ?? 0}");
+            Debug.Log($"[GameWorldLoader] 开始生成流程 -> Tile: {data.Tile?.Count}, Building: {data.Building?.Count}");
+            LoadWorldRoutine(data).Forget();
+        }
 
+        private async UniTaskVoid LoadWorldRoutine(GamesDTO data)
+        {
             var entityManager = World.DefaultGameObjectInjectionWorld.EntityManager;
+            int3? firstIslandPos = null;
 
-            // 1. 初始化岛屿 (Tile)
+            // 1. 生成岛屿
             if (data.Tile != null)
             {
                 foreach (var tile in data.Tile)
                 {
                     CreateIslandRequest(entityManager, tile);
+                    if (firstIslandPos == null) firstIslandPos = new int3(tile.posX, tile.posY, tile.posZ);
                 }
             }
 
-            // 2. 初始化建筑 (Building) - 可选，为了完整性
+            // 2. 生成建筑
             if (data.Building != null)
             {
                 foreach (var build in data.Building)
@@ -53,32 +69,67 @@ namespace GameFramework.Core
                     CreateBuildingRequest(entityManager, build);
                 }
             }
+
+            // 等待一帧，让 ECS 系统处理请求
+            await UniTask.NextFrame();
+
+            // 3. 聚焦相机
+            if (firstIslandPos.HasValue)
+            {
+                FocusCameraOnIsland(firstIslandPos.Value);
+            }
+            else
+            {
+                // 如果没有岛屿，尝试聚焦到 (0,0,0) 或者做个默认视角
+                Debug.LogWarning("[GameWorldLoader] 没有岛屿数据，相机将聚焦到原点");
+                FocusCameraOnIsland(int3.zero);
+            }
+
+            // 4. 切换到 Playing 状态，正式开始游戏
+            Debug.Log("[GameWorldLoader] 生成完毕，切换状态 -> Playing");
+            if (GameStateManager.Instance != null)
+            {
+                GameStateManager.Instance.ChangeState(GameState.Playing);
+                UIManager.Instance.ShowPanelAsync<UIPanel>("MainPanel", UILayer.Normal).Forget();
+            }
+        }
+
+        private void FocusCameraOnIsland(int3 gridPos)
+        {
+            if (Camera.main == null)
+            {
+                Debug.LogError("[GameWorldLoader] 找不到 Camera.main！");
+                return;
+            }
+
+            float cellSize = 2.0f; // 请确保和 GridConfig 一致
+            float3 targetWorldPos = new float3(gridPos.x * cellSize, gridPos.y * cellSize, gridPos.z * cellSize);
+            // 稍微偏移一点让岛屿居中
+            targetWorldPos += new float3(10f, 0, 10f);
+
+            // 设置上帝视角
+            float3 cameraOffset = new float3(-30, 40, -30);
+            Camera.main.transform.position = targetWorldPos + cameraOffset;
+            Camera.main.transform.LookAt(targetWorldPos);
         }
 
         private void CreateIslandRequest(EntityManager em, TileDTO tile)
         {
-            // 查表获取岛屿尺寸
-            // 假设 tile.tile_id 对应 TbIsland 表的 ID
             var islandCfg = ConfigManager.Instance.Tables.TbIsland.GetOrDefault(tile.tile_id);
             if (islandCfg == null)
             {
-                Debug.LogError($"[GameWorldLoader] 找不到岛屿配置 ID: {tile.tile_id}");
+                Debug.LogError($"[GameWorldLoader] 配置表中找不到岛屿 ID: {tile.tile_id}");
                 return;
             }
 
-            // 创建 ECS 请求实体
             var requestEntity = em.CreateEntity();
-
-            // 构造尺寸 (Length=X, Height=Y, Width=Z)
-            int3 size = new int3(islandCfg.Length, islandCfg.Height, islandCfg.Width);
-
             em.AddComponentData(requestEntity, new PlaceObjectRequest
             {
                 ObjectId = tile.tile_id,
                 Position = new int3(tile.posX, tile.posY, tile.posZ),
-                Type = PlacementType.Island, // 
-                Size = size,
-                Rotation = quaternion.identity, // 岛屿通常不旋转
+                Type = PlacementType.Island,
+                Size = new int3(islandCfg.Length, islandCfg.Height, islandCfg.Width),
+                Rotation = quaternion.identity,
                 RotationIndex = 0,
                 AirspaceHeight = islandCfg.AirHeight
             });
@@ -90,20 +141,9 @@ namespace GameFramework.Core
             if (buildCfg == null) return;
 
             var requestEntity = em.CreateEntity();
-
-            // 建筑通常只有长宽，高度默认为1 (根据之前 PlacementSystem 的逻辑)
-            // 如果有旋转，且旋转为 1 或 3 (90/270度)，长宽需要对调
             int length = buildCfg.Length;
             int width = buildCfg.Width;
-
-            if (build.rotate % 2 != 0)
-            {
-                // 交换长宽
-                int temp = length; length = width; width = temp;
-            }
-
-            // 计算旋转四元数 (0=0度, 1=90度...)
-            quaternion rot = quaternion.RotateY(math.radians(90 * build.rotate));
+            if (build.rotate % 2 != 0) { int t = length; length = width; width = t; }
 
             em.AddComponentData(requestEntity, new PlaceObjectRequest
             {
@@ -111,7 +151,7 @@ namespace GameFramework.Core
                 Position = new int3(build.posX, build.posY, build.posZ),
                 Type = PlacementType.Building,
                 Size = new int3(length, 1, width),
-                Rotation = rot,
+                Rotation = quaternion.RotateY(math.radians(90 * build.rotate)),
                 RotationIndex = build.rotate,
                 AirspaceHeight = 0
             });
