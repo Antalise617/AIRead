@@ -3,6 +3,8 @@ using GameFramework.Events;
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using HotUpdate.UI; // [新增] 引用UI命名空间
+using GameFramework.Managers; // [新增] 引用管理器命名空间
 
 namespace GameFramework.Core
 {
@@ -94,10 +96,14 @@ namespace GameFramework.Core
 
     public class MainMenuState : IGameState
     {
-        public void OnEnter()
+        // [修改] 改为 async void 以支持等待 UI 打开
+        public async void OnEnter()
         {
             Debug.Log("进入主菜单状态");
             Time.timeScale = 1f;
+
+            // [新增] 进入主菜单状态时，主动打开选服界面
+            await UIManager.Instance.ShowPanelAsync<ServerSelectPanel>("ServerSelectPanel");
         }
         public void OnUpdate(float deltaTime) { }
         public void OnExit() { Debug.Log("退出主菜单状态"); }
@@ -112,11 +118,17 @@ namespace GameFramework.Core
 
     public class PlayingState : IGameState
     {
-        public void OnEnter()
+        // [修改] 改为 async void
+        public async void OnEnter()
         {
             Debug.Log("进入游戏状态");
             Time.timeScale = 1f;
+
+            // [新增] 进入正式游戏状态时，打开主界面 HUD (MainPanel)
+            // 注意：TestSceneSetup.cs 中的 MainPanel 打开代码应该被注释掉，由这里统一管理
+            await UIManager.Instance.ShowPanelAsync<MainPanel>("MainPanel");
         }
+
         public void OnUpdate(float deltaTime)
         {
             // 检测暂停输入
