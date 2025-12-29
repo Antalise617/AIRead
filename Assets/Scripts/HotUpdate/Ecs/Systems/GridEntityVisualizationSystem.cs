@@ -104,16 +104,16 @@ namespace GameFramework.ECS.Systems
         }
 
         // [新增]：显示所有可造桥区域（岛屿连接点）
-        public void ShowBridgeableGrids()
+        public void ShowBridgeableGrids(bool forceRefresh = false) // 添加可选参数
         {
             if (!CheckPrerequisites()) return;
 
-            // 状态去重
-            if (_currentMode == VisMode.BridgeableOnly) return;
+            // 只有在非强制刷新且模式相同时才拦截
+            if (!forceRefresh && _currentMode == VisMode.BridgeableOnly) return;
 
             ClearCurrentGrid();
             _currentMode = VisMode.BridgeableOnly;
-            _currentRange = new int2(-1, -1); // 重置层级记录
+            _currentRange = new int2(-1, -1);
 
             GenerateBridgeableGrids();
         }

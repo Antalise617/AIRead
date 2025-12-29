@@ -28,6 +28,7 @@ public sealed partial class Build : Luban.BeanBase
         DemandOccupation = (zsEnum.Profession)_buf.ReadInt();
         {int n0 = System.Math.Min(_buf.ReadSize(), _buf.Size);BuildingTag = new System.Collections.Generic.List<zsEnum.PreferenceTag>(n0);for(var i0 = 0 ; i0 < n0 ; i0++) { zsEnum.PreferenceTag _e0;  _e0 = (zsEnum.PreferenceTag)_buf.ReadInt(); BuildingTag.Add(_e0);}}
         {int n0 = System.Math.Min(_buf.ReadSize(), _buf.Size);IslandAffinity = new System.Collections.Generic.List<System.Collections.Generic.List<int>>(n0);for(var i0 = 0 ; i0 < n0 ; i0++) { System.Collections.Generic.List<int> _e0;  {int n1 = System.Math.Min(_buf.ReadSize(), _buf.Size);_e0 = new System.Collections.Generic.List<int>(n1);for(var i1 = 0 ; i1 < n1 ; i1++) { int _e1;  _e1 = _buf.ReadInt(); _e0.Add(_e1);}} IslandAffinity.Add(_e0);}}
+        AttrType = _buf.ReadString();
     }
 
     public static Build DeserializeBuild(ByteBuf _buf)
@@ -83,12 +84,17 @@ public sealed partial class Build : Luban.BeanBase
     /// 岛屿亲和
     /// </summary>
     public readonly System.Collections.Generic.List<System.Collections.Generic.List<int>> IslandAffinity;
+    /// <summary>
+    /// 属性影响类型
+    /// </summary>
+    public readonly string AttrType;
    
     public const int __ID__ = 64542286;
     public override int GetTypeId() => __ID__;
 
     public  void ResolveRef(Tables tables)
     {
+        
         
         
         
@@ -118,6 +124,7 @@ public sealed partial class Build : Luban.BeanBase
         + "DemandOccupation:" + DemandOccupation + ","
         + "BuildingTag:" + Luban.StringUtil.CollectionToString(BuildingTag) + ","
         + "IslandAffinity:" + Luban.StringUtil.CollectionToString(IslandAffinity) + ","
+        + "AttrType:" + AttrType + ","
         + "}";
     }
 }

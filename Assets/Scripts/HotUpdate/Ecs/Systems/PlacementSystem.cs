@@ -271,7 +271,24 @@ namespace GameFramework.ECS.Systems
             }
         }
 
-        // 【核心修改】返回值改为 bool：true 表示建造完成应退出模式，false 表示继续保持模式
+        // [新增] 异步刷新桥梁显示
+        private async UniTaskVoid RefreshBridgeVisualsAsync()
+        {
+            // 等待一帧，确保 PlaceObjectRequest 被处理，GridSystem 数据已更新
+            await UniTask.NextFrame();
+
+            // 检查状态：确保玩家还在造桥模式中
+            if (!SystemAPI.HasSingleton<PlacementStateComponent>()) return;
+            var state = SystemAPI.GetSingleton<PlacementStateComponent>();
+
+            if (state.IsActive && state.Type == PlacementType.Bridge)
+            {
+                // 这里调用的是带参数的方法，需要 GridEntityVisualizationSystem 对应修改
+                _gridVisSystem?.ShowBridgeableGrids(true);
+            }
+        }
+
+        // [修改] 确认放置逻辑
         public bool ConfirmPlacement()
         {
             if (!SystemAPI.HasSingleton<PlacementStateComponent>()) return true;
@@ -294,10 +311,11 @@ namespace GameFramework.ECS.Systems
 
             EventManager.Instance.Publish(new ObjectBuiltEvent { Type = state.Type });
 
-            // 【核心修改】如果是桥梁，不退出建造模式，也不销毁预览物体
+            // [核心修改] 如果是桥梁，不退出建造模式，但触发异步刷新网格
             if (state.Type == PlacementType.Bridge)
             {
-                Debug.Log("[PlacementSystem] 桥梁已放置，保持建造模式");
+                Debug.Log("[PlacementSystem] 桥梁已放置，保持建造模式并刷新网格");
+                RefreshBridgeVisualsAsync().Forget();
                 // 返回 false，告诉 UI 不要关闭
                 return false;
             }

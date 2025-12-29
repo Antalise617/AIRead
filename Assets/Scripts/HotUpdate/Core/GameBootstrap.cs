@@ -49,6 +49,7 @@ namespace GameFramework.Core
             SaveManager.Instance.Initialize();
             PoolManager.Instance.Initialize();
             SimpleQuestManager.Instance.Init();
+            NetworkManager.Instance.Initialize();
 
             GlobalInventoryManager.Instance.LoadInventory(null);
 

@@ -22,9 +22,10 @@ public sealed partial class Tourist : Luban.BeanBase
         {int n0 = System.Math.Min(_buf.ReadSize(), _buf.Size);InitialGold = new System.Collections.Generic.List<int>(n0);for(var i0 = 0 ; i0 < n0 ; i0++) { int _e0;  _e0 = _buf.ReadInt(); InitialGold.Add(_e0);}}
         {int n0 = System.Math.Min(_buf.ReadSize(), _buf.Size);Tags = new System.Collections.Generic.List<zsEnum.PreferenceTag>(n0);for(var i0 = 0 ; i0 < n0 ; i0++) { zsEnum.PreferenceTag _e0;  _e0 = (zsEnum.PreferenceTag)_buf.ReadInt(); Tags.Add(_e0);}}
         BaseMoveSpeed = _buf.ReadFloat();
+        RefreshWeight = _buf.ReadInt();
+        ModelID = _buf.ReadString();
         MaxWaitTime = _buf.ReadInt();
         MaxConsecutiveDisappointment = _buf.ReadInt();
-        RefreshWeight = _buf.ReadInt();
         InitSatisfaction = _buf.ReadInt();
         {int n0 = System.Math.Min(_buf.ReadSize(), _buf.Size);InitStayTime = new System.Collections.Generic.List<int>(n0);for(var i0 = 0 ; i0 < n0 ; i0++) { int _e0;  _e0 = _buf.ReadInt(); InitStayTime.Add(_e0);}}
         MaxStayTime = _buf.ReadInt();
@@ -32,7 +33,6 @@ public sealed partial class Tourist : Luban.BeanBase
         SatisfactionThreshold = _buf.ReadInt();
         TimeBonus = _buf.ReadInt();
         FallbackEnabled = _buf.ReadBool();
-        ModelID = _buf.ReadString();
     }
 
     public static Tourist DeserializeTourist(ByteBuf _buf)
@@ -65,6 +65,14 @@ public sealed partial class Tourist : Luban.BeanBase
     /// </summary>
     public readonly float BaseMoveSpeed;
     /// <summary>
+    /// 刷新权重
+    /// </summary>
+    public readonly int RefreshWeight;
+    /// <summary>
+    /// 模型资源ID
+    /// </summary>
+    public readonly string ModelID;
+    /// <summary>
     /// 最大排队时间 (S)
     /// </summary>
     public readonly int MaxWaitTime;
@@ -72,10 +80,6 @@ public sealed partial class Tourist : Luban.BeanBase
     /// 最大连续失望次数
     /// </summary>
     public readonly int MaxConsecutiveDisappointment;
-    /// <summary>
-    /// 刷新权重
-    /// </summary>
-    public readonly int RefreshWeight;
     /// <summary>
     /// 初始满意度
     /// </summary>
@@ -104,10 +108,6 @@ public sealed partial class Tourist : Luban.BeanBase
     /// 允许去无标签建筑
     /// </summary>
     public readonly bool FallbackEnabled;
-    /// <summary>
-    /// 模型资源ID
-    /// </summary>
-    public readonly string ModelID;
    
     public const int __ID__ = 530286354;
     public override int GetTypeId() => __ID__;
@@ -142,9 +142,10 @@ public sealed partial class Tourist : Luban.BeanBase
         + "InitialGold:" + Luban.StringUtil.CollectionToString(InitialGold) + ","
         + "Tags:" + Luban.StringUtil.CollectionToString(Tags) + ","
         + "BaseMoveSpeed:" + BaseMoveSpeed + ","
+        + "RefreshWeight:" + RefreshWeight + ","
+        + "ModelID:" + ModelID + ","
         + "MaxWaitTime:" + MaxWaitTime + ","
         + "MaxConsecutiveDisappointment:" + MaxConsecutiveDisappointment + ","
-        + "RefreshWeight:" + RefreshWeight + ","
         + "InitSatisfaction:" + InitSatisfaction + ","
         + "InitStayTime:" + Luban.StringUtil.CollectionToString(InitStayTime) + ","
         + "MaxStayTime:" + MaxStayTime + ","
@@ -152,7 +153,6 @@ public sealed partial class Tourist : Luban.BeanBase
         + "SatisfactionThreshold:" + SatisfactionThreshold + ","
         + "TimeBonus:" + TimeBonus + ","
         + "FallbackEnabled:" + FallbackEnabled + ","
-        + "ModelID:" + ModelID + ","
         + "}";
     }
 }

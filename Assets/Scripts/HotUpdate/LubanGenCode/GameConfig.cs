@@ -54,6 +54,7 @@ public sealed partial class GameConfig : Luban.BeanBase
         AirshipTouristWelcomeTime = _buf.ReadInt();
         AirshipTouristReturnTime = _buf.ReadInt();
         AirshipTouristTimeAccelerate = _buf.ReadInt();
+        AirshipTouristPassengerTransportParam = _buf.ReadInt();
         TouristGroupRefreshTime = _buf.ReadInt();
         TouristGroupRefreshGold = _buf.ReadInt();
         TouristGrouGoldpRefreshNumber = _buf.ReadInt();
@@ -233,6 +234,10 @@ public sealed partial class GameConfig : Luban.BeanBase
     /// </summary>
     public readonly int AirshipTouristTimeAccelerate;
     /// <summary>
+    /// 飞艇载客数量
+    /// </summary>
+    public readonly int AirshipTouristPassengerTransportParam;
+    /// <summary>
     /// 游客团免费刷新时间间隔-秒（S）
     /// </summary>
     public readonly int TouristGroupRefreshTime;
@@ -371,6 +376,7 @@ public sealed partial class GameConfig : Luban.BeanBase
         
         
         
+        
     }
 
     public override string ToString()
@@ -414,6 +420,7 @@ public sealed partial class GameConfig : Luban.BeanBase
         + "AirshipTouristWelcomeTime:" + AirshipTouristWelcomeTime + ","
         + "AirshipTouristReturnTime:" + AirshipTouristReturnTime + ","
         + "AirshipTouristTimeAccelerate:" + AirshipTouristTimeAccelerate + ","
+        + "AirshipTouristPassengerTransportParam:" + AirshipTouristPassengerTransportParam + ","
         + "TouristGroupRefreshTime:" + TouristGroupRefreshTime + ","
         + "TouristGroupRefreshGold:" + TouristGroupRefreshGold + ","
         + "TouristGrouGoldpRefreshNumber:" + TouristGrouGoldpRefreshNumber + ","

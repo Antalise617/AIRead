@@ -230,6 +230,7 @@ namespace GameFramework.ECS.Systems
 
         public bool RegisterBridge(int3 pos, FixedString64Bytes id)
         {
+            
             if (!IsBridgeBuildable(pos)) return false;
             UpdateCell(pos, (ref GridCellData d) => { d.Type = GridType.PublicBridge; d.BuildingID = id; d.IsMovable = true; d.IsBuildable = false; d.IsBridgeable = false; });
 

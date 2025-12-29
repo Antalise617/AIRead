@@ -9,8 +9,8 @@ using Unity.Mathematics;
 using Unity.Physics;
 using Unity.Transforms;
 using UnityEngine;
-using cfg; // [新增]
-using System.Linq; // [新增]
+using cfg;
+using System.Linq;
 
 namespace GameFramework.ECS.Systems
 {
@@ -144,32 +144,27 @@ namespace GameFramework.ECS.Systems
                                 var factoryData = ConfigManager.Instance.Tables.TbBuildingLevel.GetOrDefault(req.ObjectId);
                                 if (factoryData != null)
                                 {
-                                    // 1. 计算总存储量
                                     int totalStorage = 0;
                                     foreach (var store in factoryData.OutputStorage) { if (store.Count >= 2) totalStorage += store[1]; }
-                                    if (totalStorage <= 0) totalStorage = 50; // 默认值防止为0
+                                    if (totalStorage <= 0) totalStorage = 50;
 
-                                    // 2. 挂载生产组件
                                     EntityManager.AddComponentData(spawned, new ProductionComponent
                                     {
                                         ProductionInterval = (float)factoryData.OutputCycle,
                                         MaxReserves = factoryData.OutputStorage[0][0],
                                         JobSlots = factoryData.JobSlots,
-                                        DemandOccupation = (int)factoryData.DemandOccupation, // 假设枚举类型兼容，否则需强转 (int)
+                                        DemandOccupation = (int)factoryData.DemandOccupation,
                                         IsActive = true,
                                         Timer = 0f
                                     });
 
-                                    // 3. 岛屿亲和 Buffer
                                     if (factoryData.IslandAffinity.Count > 0)
                                     {
                                         var affinityBuffer = EntityManager.AddBuffer<IslandAffinityElement>(spawned);
-                                        // 这里的 IslandAffinity 是 List<IslandType>，如果你的 Buffer 存的是 int，需要强转
                                         foreach (var affinity in factoryData.IslandAffinity)
                                             affinityBuffer.Add(new IslandAffinityElement { IslandType = (int)affinity });
                                     }
 
-                                    // 4. 原料输入 Buffer
                                     if (factoryData.ItemCost.Count > 0)
                                     {
                                         var inputBuffer = EntityManager.AddBuffer<ProductionInputElement>(spawned);
@@ -180,7 +175,6 @@ namespace GameFramework.ECS.Systems
                                         }
                                     }
 
-                                    // 5. 产品输出 Buffer
                                     if (factoryData.OutPut.Count > 0)
                                     {
                                         var outputBuffer = EntityManager.AddBuffer<ProductionOutputElement>(spawned);
@@ -199,11 +193,8 @@ namespace GameFramework.ECS.Systems
 
                             case 4: // Service
                                 var prodData = ConfigManager.Instance.Tables.TbBuildingLevel.GetOrDefault(req.ObjectId);
-
-                                // --- A. 复用生产逻辑 (Case 4 也有生产组件) ---
                                 if (prodData != null)
                                 {
-                                    // 计算存储
                                     int totalStorage = 0;
                                     foreach (var store in prodData.OutputStorage) { if (store.Count >= 2) totalStorage += store[1]; }
                                     if (totalStorage <= 0) totalStorage = 20;
@@ -218,7 +209,6 @@ namespace GameFramework.ECS.Systems
                                         Timer = 0f
                                     });
 
-                                    // Buffer: 原料 (ItemCost)
                                     if (prodData.ItemCost.Count > 0)
                                     {
                                         var inBuf = EntityManager.AddBuffer<ProductionInputElement>(spawned);
@@ -226,9 +216,6 @@ namespace GameFramework.ECS.Systems
                                             if (v.Count >= 2) inBuf.Add(new ProductionInputElement { ItemId = v[0], Count = v[1] });
                                     }
 
-                                    // Buffer: 产出 (OutPut)
-                                    // 注意：服务类建筑的 OutPut 通常是给 ProductionSystem 用的产出（如有），
-                                    // 或者是服务完成后的奖励。这里照搬原逻辑挂载到 ProductionOutputElement。
                                     if (prodData.OutPut.Count > 0)
                                     {
                                         var outBuf = EntityManager.AddBuffer<ProductionOutputElement>(spawned);
@@ -236,7 +223,6 @@ namespace GameFramework.ECS.Systems
                                             if (v.Count >= 2) outBuf.Add(new ProductionOutputElement { ItemId = v[0], CountPerCycle = v[1], CurrentStorage = 0 });
                                     }
 
-                                    // Buffer: 亲和
                                     if (prodData.IslandAffinity.Count > 0)
                                     {
                                         var affBuf = EntityManager.AddBuffer<IslandAffinityElement>(spawned);
@@ -244,13 +230,8 @@ namespace GameFramework.ECS.Systems
                                     }
                                 }
 
-                                // --- B. 服务逻辑 ---
-                                // 既然原版是 GetFactoryConfig 和 GetServiceConfig 分开的，
-                                // 现在都在 TbBuildingLevel 里。
                                 if (prodData != null)
                                 {
-                                    // 解析服务奖励：假设 OutPut 的第一个元素是服务奖励 (ItemId, Amount)
-                                    // 如果没有配 Output，则默认为 0
                                     int outId = 0;
                                     int outCount = 0;
                                     if (prodData.OutPut.Count > 0 && prodData.OutPut[0].Count >= 2)
@@ -262,8 +243,8 @@ namespace GameFramework.ECS.Systems
                                     EntityManager.AddComponentData(spawned, new ServiceComponent
                                     {
                                         ServiceConfigId = req.ObjectId,
-                                        ServiceTime = (float)prodData.DwellTime,      // 对应 ServiceTime
-                                        MaxVisitorCapacity = prodData.VisitorCapacity, // 对应 MaxVisitorCapacity
+                                        ServiceTime = (float)prodData.DwellTime,
+                                        MaxVisitorCapacity = prodData.VisitorCapacity,
                                         OutputItemId = outId,
                                         OutputItemCount = outCount,
                                         IsActive = true,
@@ -288,8 +269,17 @@ namespace GameFramework.ECS.Systems
 
                     if (TrySpawnObject(req, out Entity spawned))
                     {
+                        // 1. 先注册数据（更新 GridSystem 中的 IsBridgeable 状态）
                         _gridSystem.RegisterBridge(req.Position, new FixedString64Bytes(req.ObjectId.ToString()));
-                        if (_visSystem != null) _visSystem.ShowBridgeableGrids();
+
+                        // 2. [核心修复] 强制刷新网格显示
+                        // 注意：这里需要 GridEntityVisualizationSystem.ShowBridgeableGrids 支持 bool 参数
+                        // 如果您还没有修改 VisSystem，请先去修改，或者使用下面的 SetVisualizationRange(-1,-1) 重置状态
+                        if (_visSystem != null)
+                        {
+                            _visSystem.ShowBridgeableGrids(true);
+                        }
+
                         EntityManager.AddComponentData(spawned, new BridgeComponent { ConfigId = req.ObjectId });
                         processed = true;
                     }
@@ -303,8 +293,6 @@ namespace GameFramework.ECS.Systems
 
         private void InitializeIslandLogicAttributes(Entity islandEntity)
         {
-            // [修复] 随机获取一个 Level 1 岛屿配置
-            // 假设 TbIslandLevel 表包含岛屿等级数据，这里简单取第一个或者随机取
             var allLevels = ConfigManager.Instance.Tables.TbIslandLevel.DataList;
             if (allLevels.Count > 0)
             {
@@ -329,7 +317,6 @@ namespace GameFramework.ECS.Systems
         private bool TrySpawnObject(PlaceObjectRequest req, out Entity spawned)
         {
             spawned = Entity.Null;
-            // [修复] 手动获取资源路径
             string path = "";
             if (req.Type == PlacementType.Building)
                 path = ConfigManager.Instance.Tables.TbBuild.GetOrDefault(req.ObjectId)?.ResourceName;
@@ -337,7 +324,6 @@ namespace GameFramework.ECS.Systems
                 path = ConfigManager.Instance.Tables.TbIsland.GetOrDefault(req.ObjectId)?.ResourceName;
             else if (req.Type == PlacementType.Bridge)
             {
-                // [修复] 查表获取桥梁资源名
                 var cfg = ConfigManager.Instance.Tables.TbBridgeConfig.GetOrDefault(req.ObjectId);
                 path = cfg != null ? cfg.ResourceName : $"bridge_{req.ObjectId}";
             }
