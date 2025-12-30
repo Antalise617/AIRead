@@ -1,4 +1,5 @@
 using UnityEngine;
+using System; // [新增] 需要引用 System 命名空间以使用 DateTimeOffset
 
 namespace GameFramework.Managers
 {
@@ -11,6 +12,22 @@ namespace GameFramework.Managers
         public float TimeScale => _timeScale;
         public float GameTime => _gameTime;
         public bool IsPaused => _isPaused;
+
+        // ========================================================================
+        // [新增] ServerTime 属性，解决 CS1061 错误
+        // ========================================================================
+        /// <summary>
+        /// 获取当前服务器时间戳（秒）。
+        /// 目前使用 UTC 时间模拟，后续对接服务器对时后可在此处加上偏移量。
+        /// </summary>
+        public long ServerTime
+        {
+            get
+            {
+                return DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+            }
+        }
+        // ========================================================================
 
         private void Update()
         {

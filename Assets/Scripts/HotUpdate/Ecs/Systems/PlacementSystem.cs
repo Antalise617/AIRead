@@ -352,6 +352,9 @@ namespace GameFramework.ECS.Systems
             PlacementType type = state.Type;
             bool isSuccess = false;
 
+            // [新增] 用于临时存储服务器返回的岛屿数据
+            TileDTO serverTileData = null;
+
             // 获取配置用于后续逻辑
             cfg.Island islandCfg = null;
             int visualId = objectId;
@@ -359,14 +362,14 @@ namespace GameFramework.ECS.Systems
             {
                 var result = GetIslandConfigWithFallback(objectId);
                 islandCfg = result.config;
-                visualId = result.visualId; // 如果回退了，这里就是 101001
+                visualId = result.visualId;
             }
 
             try
             {
                 if (type == PlacementType.Building || type == PlacementType.Bridge)
                 {
-                    // ... (建筑请求逻辑保持不变) ...
+                    // ... (建筑逻辑保持不变)
                     var dto = new BuildingCreateDTO
                     {
                         building_id = objectId,
@@ -380,12 +383,8 @@ namespace GameFramework.ECS.Systems
                 }
                 else if (type == PlacementType.Island)
                 {
-                    // 岛屿请求
                     var dto = new TileCreateDTO
                     {
-                        // [注意] 这里发送用户选中的真实 ID (102001)，让服务器去处理它是哪个 Type
-                        // 或者是如果服务器只认 Type，这里可能需要传 visualId (101001)
-                        // 根据你的描述 "岛屿表只有101001...默认数据"，通常传具体 ID (102001) 更符合逻辑，服务器会返回对应的 tile_type
                         tile_type = objectId,
                         posX = gridPos.x,
                         posY = gridPos.z,
@@ -393,8 +392,19 @@ namespace GameFramework.ECS.Systems
                     };
 
                     Debug.Log($"[PlacementSystem] 发送地块请求: ID={objectId} -> ServerPos=({dto.posX},{dto.posY},{dto.posZ})");
+
+                    // [修改] 发送请求并捕获返回的数据
                     var result = await NetworkManager.Instance.SendAsync<GamesDTO>("/tile/create", dto);
-                    isSuccess = (result != null);
+
+                    if (result != null)
+                    {
+                        isSuccess = true;
+                        // 获取返回列表中最新的那一个（通常是列表的第一个或者唯一一个）
+                        if (result.Tile != null && result.Tile.Count > 0)
+                        {
+                            serverTileData = result.Tile[0];
+                        }
+                    }
                 }
             }
             catch (System.Exception e)
@@ -412,13 +422,11 @@ namespace GameFramework.ECS.Systems
                     var currentState = EntityManager.GetComponentData<PlacementStateComponent>(entity);
                     var gridConfig = SystemAPI.GetSingleton<GridConfigComponent>();
 
-                    // 获取尺寸 (如果是岛屿，使用回退后的配置)
                     int3 baseSize;
                     int airSpace = 4;
 
                     if (type == PlacementType.Island)
                     {
-                        // 使用之前解析好的 config
                         baseSize = islandCfg != null ? new int3(islandCfg.Length, islandCfg.Height, islandCfg.Width) : new int3(1, 1, 1);
                         airSpace = islandCfg != null ? islandCfg.AirHeight : 4;
                     }
@@ -428,11 +436,11 @@ namespace GameFramework.ECS.Systems
                     }
 
                     int3 finalSize = (rotation % 2 == 1) ? new int3(baseSize.z, baseSize.y, baseSize.x) : baseSize;
-
-                    // [关键] 本地生成时，如果是岛屿，必须使用 visualId (101001)，否则 SpawningSystem 加载不到资源
                     int spawnId = (type == PlacementType.Island) ? visualId : objectId;
 
-                    SendPlacementRequest(spawnId, type, gridPos, finalSize, rotation, airSpace);
+                    // [修改] 将捕获到的 serverTileData 传递给 SendPlacementRequest
+                    SendPlacementRequest(spawnId, type, gridPos, finalSize, rotation, airSpace, serverTileData);
+
                     EventManager.Instance.Publish(new ObjectBuiltEvent { Type = type });
 
                     if (type == PlacementType.Bridge)
@@ -523,10 +531,12 @@ namespace GameFramework.ECS.Systems
             return false;
         }
 
-        private void SendPlacementRequest(int id, PlacementType type, int3 pos, int3 size, int rotation, int airSpace)
+        private void SendPlacementRequest(int id, PlacementType type, int3 pos, int3 size, int rotation, int airSpace, TileDTO tileData = null)
         {
             var requestEntity = EntityManager.CreateEntity();
             quaternion finalRotation = math.mul(quaternion.RotateY(math.radians(90 * rotation)), _defaultRotation);
+
+            // 1. 添加基础请求组件 (保持原有逻辑)
             EntityManager.AddComponentData(requestEntity, new PlaceObjectRequest
             {
                 ObjectId = id,
@@ -537,6 +547,25 @@ namespace GameFramework.ECS.Systems
                 AirspaceHeight = airSpace,
                 RotationIndex = rotation
             });
+
+            // 2. [新增] 如果有服务器数据，添加状态组件
+            if (tileData != null)
+            {
+                // 注意：这里需要引用 Unity.Collections 来使用 FixedString64Bytes
+                EntityManager.AddComponentData(requestEntity, new IslandStatusComponent
+                {
+                    State = tileData.state,
+                    // 转换时间单位：毫秒 -> 秒
+                    StartTime = tileData.start_time / 1000,
+                    EndTime = tileData.end_time / 1000,
+                    CreateTime = tileData.create_time / 1000,
+                    // 保存服务器ID
+                    ServerId = new FixedString64Bytes(tileData._id),
+                    IsRequestSent = false
+                });
+
+                Debug.Log($"[PlacementSystem] 已附加状态组件: ID={tileData._id}, State={tileData.state}, EndTime={tileData.end_time / 1000}");
+            }
         }
 
         private async UniTaskVoid CreatePreviewGameObject(int configId, PlacementType type)

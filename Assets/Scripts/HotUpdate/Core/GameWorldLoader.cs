@@ -7,6 +7,7 @@ using HotUpdate.Core;
 using cfg;
 using GameFramework.Managers;
 using Cysharp.Threading.Tasks;
+using Unity.Collections;
 
 namespace GameFramework.Core
 {
@@ -156,10 +157,13 @@ namespace GameFramework.Core
             em.AddComponentData(requestEntity, new IslandStatusComponent
             {
                 State = tile.state,
-                StartTime = tile.start_time,
-                EndTime = tile.end_time,
-                CreateTime = tile.create_time
-                // 如果需要，可以在这里把真实的 tile.tile_id 存入组件，供后续逻辑使用
+                StartTime = tile.start_time / 1000,
+                EndTime = tile.end_time / 1000,
+                CreateTime = tile.create_time / 1000,
+
+                // [新增] 关键：将服务器的唯一ID存入组件
+                ServerId = new FixedString64Bytes(tile._id),
+                IsRequestSent = false
             });
         }
 

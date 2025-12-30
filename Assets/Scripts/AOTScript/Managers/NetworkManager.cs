@@ -40,7 +40,7 @@ namespace GameFramework.Managers
         public void Initialize()
         {
             Debug.Log("[NetworkManager] 初始化，自动开始登录流程...");
-            SendLogin("1930616512", "lzhlzh617");
+            SendLogin("1930616513", "lzhlzh617");
         }
 
         public void SwitchServer(ServerDTO targetServer)
@@ -368,5 +368,10 @@ namespace GameFramework.Managers
         public int posX;
         public int posY;
         public int posZ;
+    }
+    [Serializable]
+    public class TileUpLevelDTO
+    {
+        public string _id; // 必须匹配 Swagger 接口要求的字段名
     }
 }
