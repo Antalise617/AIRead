@@ -14,19 +14,15 @@ namespace GameFramework.Managers
         // 1. 配置与状态
         // ===================================================================================
 
-        // [配置] 登录服固定地址 (仅用于账号验证和获取列表)
         private const string LOGIN_SERVER_IP = "192.168.10.116";
         private const int LOGIN_SERVER_PORT = 8009;
 
-        // [状态] 当前实际连接的目标 IP 和 端口 (会随选服改变)
         private string _currentIp = LOGIN_SERVER_IP;
         private int _currentPort = LOGIN_SERVER_PORT;
 
         private string _accessToken = "";
 
-        // 缓存的服务器列表
         public List<ServerDTO> CachedServerList { get; private set; } = new List<ServerDTO>();
-        // 当前游戏数据
         public GamesDTO CurrentGameData { get; private set; }
 
         public bool IsConnected => true;
@@ -44,8 +40,7 @@ namespace GameFramework.Managers
         public void Initialize()
         {
             Debug.Log("[NetworkManager] 初始化，自动开始登录流程...");
-            // 自动登录
-            SendLogin("1930616510", "lzhlzh617");
+            SendLogin("1930616512", "lzhlzh617");
         }
 
         public void SwitchServer(ServerDTO targetServer)
@@ -111,6 +106,10 @@ namespace GameFramework.Managers
             if (response != null && response.status == "success")
             {
                 Debug.Log($"[NetworkManager] 请求成功 ({url})，更新游戏数据");
+
+                // [核心修改] 检查并更新 Token
+                CheckAndRefreshToken(response.result);
+
                 CurrentGameData = response.result;
                 OnGameDataReceived?.Invoke(response.result);
             }
@@ -137,12 +136,27 @@ namespace GameFramework.Managers
 
             if (response != null && response.status == "success")
             {
+                // [核心修改] 如果返回类型是 GamesDTO，尝试更新 Token
+                if (response.result is GamesDTO gamesDto)
+                {
+                    CheckAndRefreshToken(gamesDto);
+                }
                 return response.result;
             }
             else
             {
                 Debug.LogError($"[NetworkManager] SendAsync失败 {url}: {response?.message}");
                 return default;
+            }
+        }
+
+        // 辅助方法：提取 Token
+        private void CheckAndRefreshToken(GamesDTO data)
+        {
+            if (data != null && data.tokenResult != null && !string.IsNullOrEmpty(data.tokenResult.access_token))
+            {
+                _accessToken = data.tokenResult.access_token;
+                Debug.Log($"[NetworkManager] Token 已自动刷新: {_accessToken.Substring(0, 10)}...");
             }
         }
 
@@ -252,9 +266,20 @@ namespace GameFramework.Managers
 
     [Serializable] public class JoinGameDTO { public int server_id; }
 
+    // [新增] Token结果DTO
+    [Serializable]
+    public class TokenResultDTO
+    {
+        public string access_token;
+        public int expires_in;
+    }
+
     [Serializable]
     public class GamesDTO
     {
+        // [新增] 对应 Swagger 中的 tokenResult
+        public TokenResultDTO tokenResult;
+
         public PlayerDTO Player;
         public List<TileDTO> Tile;
         public List<BuildingDTO> Building;
@@ -278,6 +303,10 @@ namespace GameFramework.Managers
     {
         public string _id;
         public int tile_id;
+
+        // [新增] 必须添加这个字段，否则无法读取服务器返回的类型信息
+        public int tile_type;
+
         public int tile_index;
         public int is_fixed;
         public int level;
@@ -321,7 +350,6 @@ namespace GameFramework.Managers
         public int used;
     }
 
-    // [新增] 对应 /building/create
     [Serializable]
     public class BuildingCreateDTO
     {
@@ -335,10 +363,10 @@ namespace GameFramework.Managers
     [Serializable]
     public class TileCreateDTO
     {
-        public int tile_id;     // 配置ID
+        // [修正] Swagger定义为 tile_type，原代码为 tile_id
+        public int tile_type;
         public int posX;
         public int posY;
         public int posZ;
-        // 岛屿通常没有旋转，如果有可自行添加
     }
 }

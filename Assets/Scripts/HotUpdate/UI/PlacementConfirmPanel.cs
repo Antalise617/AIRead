@@ -6,6 +6,7 @@ using GameFramework.ECS.Systems;
 using Unity.Entities;
 using GameFramework.Managers;
 using GameFramework.ECS.Components;
+using Cysharp.Threading.Tasks; // [新增] 引入 UniTask
 
 namespace GameFramework.HotUpdate.UI
 {
@@ -25,7 +26,9 @@ namespace GameFramework.HotUpdate.UI
             base.OnInit();
             _parentCanvas = GetComponentInParent<Canvas>();
 
-            btnConfirm.onClick.AddListener(OnConfirmClick);
+            // [修改] 使用 UniTask 的方法包装
+            btnConfirm.onClick.AddListener(() => { OnConfirmClick().Forget(); });
+
             btnCancel.onClick.AddListener(OnCancelClick);
             if (btnRotate != null)
             {
@@ -39,28 +42,41 @@ namespace GameFramework.HotUpdate.UI
             }
         }
 
-        private void OnConfirmClick()
+        // [核心修改] 改为 async UniTaskVoid
+        private async UniTaskVoid OnConfirmClick()
         {
-            if (_placementSystem != null)
-            {
-                // 【核心修改】检查 ConfirmPlacement 的返回值
-                // 如果返回 true，说明建造结束，关闭面板
-                // 如果返回 false (如桥梁)，说明继续建造，保持面板开启 (或等用户再次拖动时自动隐藏)
-                bool isFinished = _placementSystem.ConfirmPlacement();
-                if (isFinished)
-                {
-                    Hide();
-                }
-            }
-            else
+            if (_placementSystem == null)
             {
                 Hide();
+                return;
             }
+
+            // 1. 禁用按钮，防止在网络请求期间玩家重复点击
+            btnConfirm.interactable = false;
+
+            try
+            {
+                // 2. 等待 PlacementSystem 完成（发送请求 -> 等待服务器 -> 本地生成）
+                // 注意：这里不再有返回值，因为 System 内部会根据结果决定是否关闭面板
+                await _placementSystem.ConfirmPlacement();
+            }
+            finally
+            {
+                // 3. 恢复按钮状态（如果面板还没被 System 关闭的话）
+                // 比如网络请求失败，或者放置的是桥梁（需要连续放置），面板还需保持开启
+                if (this != null && gameObject != null)
+                {
+                    btnConfirm.interactable = true;
+                }
+            }
+
+            // [注意] 这里不需要手动调用 Hide()。
+            // 因为如果放置成功，PlacementSystem.CleanupPreview() 会通过接口调用本面板的 Hide()。
+            // 如果放置失败（网络错误），面板应该保持开启，让玩家重试或取消。
         }
 
         private void OnCancelClick()
         {
-            // 取消按钮逻辑不变：强制取消并退出
             if (_placementSystem != null) _placementSystem.CancelPlacement();
             Hide();
         }

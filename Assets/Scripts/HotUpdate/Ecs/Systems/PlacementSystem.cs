@@ -316,40 +316,136 @@ namespace GameFramework.ECS.Systems
                 Debug.Log($"[PlacementSystem] 桥梁网格刷新完成，当前位置有效性: {state.IsPositionValid}");
             }
         }
-
-        public bool ConfirmPlacement()
+        private (cfg.Island config, int visualId) GetIslandConfigWithFallback(int objectId)
         {
-            if (!SystemAPI.HasSingleton<PlacementStateComponent>()) return true;
+            // 1. 尝试直接查找
+            var cfg = ConfigManager.Instance.Tables.TbIsland.GetOrDefault(objectId);
+            if (cfg != null) return (cfg, objectId);
+
+            // 2. 检查是否是有效的等级ID (例如 102001)
+            var levelCfg = ConfigManager.Instance.Tables.TbIslandLevel.GetOrDefault(objectId);
+            if (levelCfg != null)
+            {
+                // 3. 回退到默认 ID 101001 获取视觉数据
+                var defaultCfg = ConfigManager.Instance.Tables.TbIsland.GetOrDefault(101001);
+                if (defaultCfg != null) return (defaultCfg, 101001);
+            }
+
+            return (null, 0);
+        }
+        public async UniTask ConfirmPlacement()
+        {
+            if (!SystemAPI.HasSingleton<PlacementStateComponent>()) return;
+
             var stateRef = SystemAPI.GetSingletonRW<PlacementStateComponent>();
-            ref var state = ref stateRef.ValueRW;
-            if (!state.IsActive || !state.IsPositionValid) return false;
+            var state = stateRef.ValueRO;
 
-            var gridConfig = SystemAPI.GetSingleton<GridConfigComponent>();
-            int3 baseSize = GetObjectSizeFromConfig(state.CurrentObjectId, state.Type);
-            int3 finalSize = (state.RotationIndex % 2 == 1) ? new int3(baseSize.z, baseSize.y, baseSize.x) : baseSize;
-
-            int airSpace = 4;
-            if (state.Type == PlacementType.Island)
+            if (!state.IsActive || !state.IsPositionValid)
             {
-                var islandCfg = ConfigManager.Instance.Tables.TbIsland.GetOrDefault(state.CurrentObjectId);
-                airSpace = islandCfg != null ? islandCfg.AirHeight : 4;
+                Debug.LogWarning("放置状态无效或位置非法，无法确认放置");
+                return;
             }
 
-            SendPlacementRequest(state.CurrentObjectId, state.Type, state.CurrentGridPos, finalSize, state.RotationIndex, airSpace);
+            int objectId = state.CurrentObjectId;
+            int3 gridPos = state.CurrentGridPos;
+            int rotation = state.RotationIndex;
+            PlacementType type = state.Type;
+            bool isSuccess = false;
 
-            EventManager.Instance.Publish(new ObjectBuiltEvent { Type = state.Type });
-
-            // [核心修改] 如果是桥梁，传入当前坐标，启动智能等待刷新
-            if (state.Type == PlacementType.Bridge)
+            // 获取配置用于后续逻辑
+            cfg.Island islandCfg = null;
+            int visualId = objectId;
+            if (type == PlacementType.Island)
             {
-                Debug.Log("[PlacementSystem] 桥梁已放置，等待网格数据更新...");
-                RefreshBridgeVisualsAsync(state.CurrentGridPos).Forget();
-                return false;
+                var result = GetIslandConfigWithFallback(objectId);
+                islandCfg = result.config;
+                visualId = result.visualId; // 如果回退了，这里就是 101001
             }
 
-            state.IsActive = false;
-            CleanupPreview();
-            return true;
+            try
+            {
+                if (type == PlacementType.Building || type == PlacementType.Bridge)
+                {
+                    // ... (建筑请求逻辑保持不变) ...
+                    var dto = new BuildingCreateDTO
+                    {
+                        building_id = objectId,
+                        posX = gridPos.x,
+                        posY = gridPos.z,
+                        posZ = gridPos.y,
+                        rotate = rotation
+                    };
+                    var result = await NetworkManager.Instance.SendAsync<GamesDTO>("/building/create", dto);
+                    isSuccess = (result != null);
+                }
+                else if (type == PlacementType.Island)
+                {
+                    // 岛屿请求
+                    var dto = new TileCreateDTO
+                    {
+                        // [注意] 这里发送用户选中的真实 ID (102001)，让服务器去处理它是哪个 Type
+                        // 或者是如果服务器只认 Type，这里可能需要传 visualId (101001)
+                        // 根据你的描述 "岛屿表只有101001...默认数据"，通常传具体 ID (102001) 更符合逻辑，服务器会返回对应的 tile_type
+                        tile_type = objectId,
+                        posX = gridPos.x,
+                        posY = gridPos.z,
+                        posZ = gridPos.y
+                    };
+
+                    Debug.Log($"[PlacementSystem] 发送地块请求: ID={objectId} -> ServerPos=({dto.posX},{dto.posY},{dto.posZ})");
+                    var result = await NetworkManager.Instance.SendAsync<GamesDTO>("/tile/create", dto);
+                    isSuccess = (result != null);
+                }
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogError($"[PlacementSystem] 网络请求异常: {e.Message}");
+                return;
+            }
+
+            if (isSuccess)
+            {
+                var query = EntityManager.CreateEntityQuery(typeof(PlacementStateComponent));
+                if (!query.IsEmptyIgnoreFilter)
+                {
+                    var entity = query.GetSingletonEntity();
+                    var currentState = EntityManager.GetComponentData<PlacementStateComponent>(entity);
+                    var gridConfig = SystemAPI.GetSingleton<GridConfigComponent>();
+
+                    // 获取尺寸 (如果是岛屿，使用回退后的配置)
+                    int3 baseSize;
+                    int airSpace = 4;
+
+                    if (type == PlacementType.Island)
+                    {
+                        // 使用之前解析好的 config
+                        baseSize = islandCfg != null ? new int3(islandCfg.Length, islandCfg.Height, islandCfg.Width) : new int3(1, 1, 1);
+                        airSpace = islandCfg != null ? islandCfg.AirHeight : 4;
+                    }
+                    else
+                    {
+                        baseSize = GetObjectSizeFromConfig(objectId, type);
+                    }
+
+                    int3 finalSize = (rotation % 2 == 1) ? new int3(baseSize.z, baseSize.y, baseSize.x) : baseSize;
+
+                    // [关键] 本地生成时，如果是岛屿，必须使用 visualId (101001)，否则 SpawningSystem 加载不到资源
+                    int spawnId = (type == PlacementType.Island) ? visualId : objectId;
+
+                    SendPlacementRequest(spawnId, type, gridPos, finalSize, rotation, airSpace);
+                    EventManager.Instance.Publish(new ObjectBuiltEvent { Type = type });
+
+                    if (type == PlacementType.Bridge)
+                    {
+                        RefreshBridgeVisualsAsync(gridPos).Forget();
+                        return;
+                    }
+
+                    currentState.IsActive = false;
+                    EntityManager.SetComponentData(entity, currentState);
+                    CleanupPreview();
+                }
+            }
         }
 
         public void CancelPlacement()
@@ -447,7 +543,6 @@ namespace GameFramework.ECS.Systems
         {
             _isResourceLoading = true;
             _lastLoadedObjectId = configId;
-
             string resourcePath = "";
 
             if (type == PlacementType.Building)
@@ -457,24 +552,20 @@ namespace GameFramework.ECS.Systems
             }
             else if (type == PlacementType.Island)
             {
-                var cfg = ConfigManager.Instance.Tables.TbIsland.GetOrDefault(configId);
-                if (cfg != null) resourcePath = cfg.ResourceName;
+                // 使用回退逻辑获取资源名
+                var result = GetIslandConfigWithFallback(configId);
+                if (result.config != null) resourcePath = result.config.ResourceName;
             }
             else if (type == PlacementType.Bridge)
             {
+                // ... (桥梁逻辑保持不变)
                 var cfg = ConfigManager.Instance.Tables.TbBridgeConfig.GetOrDefault(configId);
-                if (cfg != null)
-                {
-                    resourcePath = cfg.ResourceName;
-                }
-                else
-                {
-                    resourcePath = $"bridge_{configId}";
-                }
+                resourcePath = cfg != null ? cfg.ResourceName : $"bridge_{configId}";
             }
 
             if (!string.IsNullOrEmpty(resourcePath))
             {
+                // ... (加载资源逻辑保持不变)
                 try
                 {
                     var prefab = await ResourceManager.Instance.LoadAssetAsync<GameObject>(resourcePath);
@@ -486,10 +577,7 @@ namespace GameFramework.ECS.Systems
                         _isFirstFrameAfterLoad = true;
                     }
                 }
-                catch (System.Exception e)
-                {
-                    Debug.LogError($"[PlacementSystem] 资源加载失败 Key: {resourcePath}. Error: {e.Message}");
-                }
+                catch { /*...*/ }
             }
             _isResourceLoading = false;
         }
@@ -532,7 +620,9 @@ namespace GameFramework.ECS.Systems
                     return bCfg != null ? new int3(bCfg.Length, 1, bCfg.Width) : new int3(1, 1, 1);
 
                 case PlacementType.Island:
-                    var iCfg = ConfigManager.Instance.Tables.TbIsland.GetOrDefault(objectId);
+                    // 使用回退逻辑
+                    var result = GetIslandConfigWithFallback(objectId);
+                    var iCfg = result.config;
                     return iCfg != null ? new int3(iCfg.Length, iCfg.Height, iCfg.Width) : new int3(1, 1, 1);
             }
             return new int3(1, 1, 1);

@@ -47,24 +47,18 @@ namespace GameFramework.Core
 
         private async UniTaskVoid LoadWorldRoutine(GamesDTO data)
         {
-            // [新增] 初始等待：确保 ECS 世界和 GridSystem 完成初始化
             await UniTask.NextFrame();
-
             var entityManager = World.DefaultGameObjectInjectionWorld.EntityManager;
             int3? firstIslandPos = null;
 
-            // ========================================================================
-            // 阶段 1: 优先生成岛屿 (填充 Grid 数据)
-            // ========================================================================
             if (data.Tile != null)
             {
                 Debug.Log($"[GameWorldLoader] 阶段1: 发送 {data.Tile.Count} 个岛屿生成请求...");
                 foreach (var tile in data.Tile)
                 {
+                    // [修改] 创建请求时传入 tile (内部会处理 tile_id vs tile_type)
                     CreateIslandRequest(entityManager, tile);
-                    // [坐标系修正] 记录相机焦点时，也要进行 Y/Z 互换
-                    // Server(X, Y, Z_Height) -> Unity(X, Y_Height, Z)
-                    // 对应 DTO(posX, posY, posZ) -> Unity(posX, posZ, posY)
+
                     if (firstIslandPos == null)
                     {
                         firstIslandPos = new int3(tile.posX, tile.posZ, tile.posY);
@@ -72,15 +66,8 @@ namespace GameFramework.Core
                 }
             }
 
-            // [核心修复] 
-            // 必须等待一帧！
-            // 此时 ECS 系统会处理上述 Island 请求，GridSystem 会注册岛屿信息。
-            // 只有这一步完成后，WorldGrid 中对应坐标才会变成 "IsBuildable = true"。
             await UniTask.NextFrame();
 
-            // ========================================================================
-            // 阶段 2: 生成建筑 (读取 Grid 数据)
-            // ========================================================================
             if (data.Building != null)
             {
                 Debug.Log($"[GameWorldLoader] 阶段2: 岛屿数据已就绪，开始发送 {data.Building.Count} 个建筑生成请求...");
@@ -90,21 +77,11 @@ namespace GameFramework.Core
                 }
             }
 
-            // 再等待一帧，让建筑请求被 ECS 处理完 (可选，主要是为了确保后续相机聚焦等逻辑在物体生成后执行)
             await UniTask.NextFrame();
 
-            // 3. 聚焦相机
-            if (firstIslandPos.HasValue)
-            {
-                FocusCameraOnIsland(firstIslandPos.Value);
-            }
-            else
-            {
-                Debug.LogWarning("[GameWorldLoader] 没有岛屿数据，相机将聚焦到原点");
-                FocusCameraOnIsland(int3.zero);
-            }
+            if (firstIslandPos.HasValue) FocusCameraOnIsland(firstIslandPos.Value);
+            else FocusCameraOnIsland(int3.zero);
 
-            // 4. 切换到 Playing 状态，正式开始游戏
             if (GameStateManager.Instance != null)
             {
                 GameStateManager.Instance.ChangeState(GameState.Playing);
@@ -127,8 +104,35 @@ namespace GameFramework.Core
 
         private void CreateIslandRequest(EntityManager em, TileDTO tile)
         {
+            // [核心修复] 
+            // 优先尝试用 tile_id 查表 (以防未来配置表扩充了具体ID)
+            // 如果查不到，则使用 tile_type (101001) 查表 (这是目前的默认逻辑)
             var islandCfg = ConfigManager.Instance.Tables.TbIsland.GetOrDefault(tile.tile_id);
-            if (islandCfg == null) return;
+
+            int visualObjectId = tile.tile_id; // 默认用 id
+
+            if (islandCfg == null)
+            {
+                // 尝试用 type 查找 (例如 102001 -> 101001)
+                islandCfg = ConfigManager.Instance.Tables.TbIsland.GetOrDefault(tile.tile_type);
+                if (islandCfg != null)
+                {
+                    visualObjectId = tile.tile_type; // 找到了，说明要用 type 作为视觉ID
+                }
+            }
+
+            // 如果还是找不到，并且是 102001 这种存在于 Level 表的 ID，强制兜底到 101001
+            if (islandCfg == null && ConfigManager.Instance.Tables.TbIslandLevel.GetOrDefault(tile.tile_id) != null)
+            {
+                islandCfg = ConfigManager.Instance.Tables.TbIsland.GetOrDefault(101001);
+                if (islandCfg != null) visualObjectId = 101001;
+            }
+
+            if (islandCfg == null)
+            {
+                Debug.LogError($"[GameWorldLoader] 无法找到岛屿配置，跳过生成! ID:{tile.tile_id}, Type:{tile.tile_type}");
+                return;
+            }
 
             var requestEntity = em.CreateEntity();
 
@@ -136,9 +140,10 @@ namespace GameFramework.Core
             int3 unityPos = new int3(tile.posX, tile.posZ, tile.posY);
 
             // 1. 添加生成请求组件
+            // 注意：这里 ObjectId 传入 visualObjectId (101001)，确保 ObjectSpawningSystem 能加载到资源
             em.AddComponentData(requestEntity, new PlaceObjectRequest
             {
-                ObjectId = tile.tile_id,
+                ObjectId = visualObjectId,
                 Position = unityPos,
                 Type = PlacementType.Island,
                 Size = new int3(islandCfg.Length, islandCfg.Height, islandCfg.Width),
@@ -147,13 +152,14 @@ namespace GameFramework.Core
                 AirspaceHeight = islandCfg.AirHeight
             });
 
-            // 2. 添加状态机组件，携带后端时间数据
+            // 2. 添加状态机组件
             em.AddComponentData(requestEntity, new IslandStatusComponent
             {
                 State = tile.state,
                 StartTime = tile.start_time,
                 EndTime = tile.end_time,
                 CreateTime = tile.create_time
+                // 如果需要，可以在这里把真实的 tile.tile_id 存入组件，供后续逻辑使用
             });
         }
 
