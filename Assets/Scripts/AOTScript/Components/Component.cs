@@ -82,6 +82,38 @@ namespace GameFramework.ECS.Components
     {
         public int StructureType;
     }
+
+    /// <summary>
+    /// 岛屿状态机组件
+    /// 记录岛屿当前的生命周期状态及相关时间戳
+    /// </summary>
+    public struct IslandStatusComponent : IComponentData
+    {
+        /// <summary>
+        /// 岛屿状态
+        /// 1: 正常 (Normal)
+        /// 2: 建造/升级中 (Building)
+        /// 3: 销毁中 (Destroying)
+        /// (具体枚举值需与后端对应)
+        /// </summary>
+        public int State;
+
+        /// <summary>
+        /// 操作开始时间 (时间戳: 秒或毫秒)
+        /// 用于计算进度条：Progress = (Now - Start) / (End - Start)
+        /// </summary>
+        public long StartTime;
+
+        /// <summary>
+        /// 操作预计结束时间 (时间戳)
+        /// </summary>
+        public long EndTime;
+
+        /// <summary>
+        /// 岛屿最初创建的时间 (时间戳)
+        /// </summary>
+        public long CreateTime;
+    }
     #endregion
 
     public struct PlaceObjectRequest : IComponentData

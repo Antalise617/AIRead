@@ -68,8 +68,7 @@ namespace GameFramework.ECS.Systems
                     // 1. 检查位置是否合法
                     if (!_gridSystem.CheckIslandPlacement(req.Position, req.Size, req.AirspaceHeight))
                     {
-                        Debug.LogError($"[Spawn-Island] ❌ 位置检测失败！坐标 {req.Position} 可能超出边界或重叠。请检查 GridSystem 配置 (地图大小) 和服务器坐标。");
-                        // 即使失败也销毁请求，防止死循环报错
+                        Debug.LogError($"[Spawn-Island] ❌ 位置检测失败！坐标 {req.Position} 可能超出边界或重叠。");
                         EntityManager.DestroyEntity(entity);
                         continue;
                     }
@@ -89,6 +88,23 @@ namespace GameFramework.ECS.Systems
                                 Size = req.Size,
                                 AirSpace = req.AirspaceHeight
                             });
+
+                            // [新增] 传递状态机组件 (从 Request Entity -> Spawned Entity)
+                            if (EntityManager.HasComponent<IslandStatusComponent>(entity))
+                            {
+                                var status = EntityManager.GetComponentData<IslandStatusComponent>(entity);
+                                EntityManager.AddComponentData(spawned, status);
+                            }
+                            else
+                            {
+                                // 如果没有状态组件(例如本地放置)，给一个默认值
+                                EntityManager.AddComponentData(spawned, new IslandStatusComponent
+                                {
+                                    State = 1,
+                                    CreateTime = (long)System.DateTime.UtcNow.Subtract(new System.DateTime(1970, 1, 1)).TotalSeconds
+                                });
+                            }
+
                             processed = true;
                         }
                     }
@@ -99,11 +115,15 @@ namespace GameFramework.ECS.Systems
                 }
                 else if (req.Type == PlacementType.Building)
                 {
-                    // 建筑逻辑保持简化，用于排查
+                    // ========================================================================
+                    // [关键修改] 打印详细日志，排查建筑位置错误
+                    // ========================================================================
+                    Debug.Log($"[Spawn-Building] 处理建筑请求 ID:{req.ObjectId} Pos:{req.Position} Size:{req.Size}");
+
                     int3 end = req.Position + req.Size - new int3(1, 1, 1);
                     if (!_gridSystem.IsBuildingBuildable(req.Position, end))
                     {
-                        Debug.LogError($"[Spawn-Building] ❌ 建筑位置检测失败: {req.Position}");
+                        Debug.LogError($"[Spawn-Building] ❌ 建筑位置检测失败: Start:{req.Position} End:{end}");
                         EntityManager.DestroyEntity(entity);
                         continue;
                     }
@@ -112,7 +132,6 @@ namespace GameFramework.ECS.Systems
                     {
                         _gridSystem.RegisterBuilding(req.Position, req.Size, new FixedString64Bytes(req.ObjectId.ToString()));
 
-                        // 为了防止 Log 刷屏，这里省略详细组件添加代码，只做基础标记
                         var buildCfg = ConfigManager.Instance.Tables.TbBuild.GetOrDefault(req.ObjectId);
                         EntityManager.AddComponentData(spawned, new BuildingComponent
                         {
@@ -125,7 +144,23 @@ namespace GameFramework.ECS.Systems
                         processed = true;
                     }
                 }
-                // ... (Bridge 逻辑省略) ...
+                else if (req.Type == PlacementType.Bridge)
+                {
+                    Debug.Log($"[Spawn-Bridge] 处理桥梁请求 ID:{req.ObjectId} Pos:{req.Position}");
+
+                    if (!_gridSystem.IsBridgeBuildable(req.Position))
+                    {
+                        Debug.LogError($"[Spawn-Bridge] ❌ 桥梁位置检测失败: {req.Position}");
+                        EntityManager.DestroyEntity(entity);
+                        continue;
+                    }
+
+                    if (TrySpawnObject(req, out Entity spawned))
+                    {
+                        _gridSystem.RegisterBridge(req.Position, new FixedString64Bytes(req.ObjectId.ToString()));
+                        processed = true;
+                    }
+                }
 
                 if (processed)
                 {
@@ -158,7 +193,6 @@ namespace GameFramework.ECS.Systems
             spawned = Entity.Null;
             string path = "";
 
-            // 获取资源路径
             if (req.Type == PlacementType.Building)
                 path = ConfigManager.Instance.Tables.TbBuild.GetOrDefault(req.ObjectId)?.ResourceName;
             else if (req.Type == PlacementType.Island)
@@ -169,17 +203,32 @@ namespace GameFramework.ECS.Systems
             if (string.IsNullOrEmpty(path))
             {
                 Debug.LogError($"[Spawn] ❌ 配置表中找不到资源路径！Type:{req.Type} ID:{req.ObjectId}");
-                return true; // 返回 true 以便让外层销毁这个错误的请求
+                return true;
             }
 
             float3 worldPos = _gridSystem.CalculateObjectCenterWorldPosition(req.Position, req.Size);
+
+            // [Visual Offset] 岛屿视觉偏移 +1
+            if (req.Type == PlacementType.Island)
+            {
+                worldPos.y += 1f;
+            }
 
             // 检查 EntityFactory 是否已经缓存了该 Prefab 的 Archetype
             if (_entityFactory.HasEntity(req.ObjectId))
             {
                 float s = _gridConfig.CellSize;
                 float3 size = new float3(req.Size.x, req.Size.y, req.Size.z) * s;
-                var box = new BoxGeometry { Center = float3.zero, Orientation = quaternion.identity, Size = new float3(size.x, 0.5f, size.z) };
+
+                // [Collider Offset] 计算碰撞体中心偏移
+                // 如果是岛屿，实体在 Y+1，为了让碰撞体贴合网格平面，碰撞体中心需要下移 1 (即 -1)
+                float3 colliderCenter = float3.zero;
+                if (req.Type == PlacementType.Island)
+                {
+                    colliderCenter = new float3(0, -1f, 0);
+                }
+
+                var box = new BoxGeometry { Center = colliderCenter, Orientation = quaternion.identity, Size = new float3(size.x, 0.5f, size.z) };
 
                 // 真正生成 Entity
                 spawned = _entityFactory.SpawnColliderEntity(req.ObjectId, worldPos, req.Rotation, box);

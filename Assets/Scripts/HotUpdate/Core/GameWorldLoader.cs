@@ -21,10 +21,8 @@ namespace GameFramework.Core
         {
             if (NetworkManager.Instance != null)
             {
-                // [修复] 事件名称改为 OnGameDataReceived
                 NetworkManager.Instance.OnGameDataReceived += OnGameDataReceived;
 
-                // 检查是否已经错过了事件（如果有缓存数据，直接加载）
                 if (NetworkManager.Instance.CurrentGameData != null)
                 {
                     Debug.Log("[GameWorldLoader] Start: 发现缓存数据，立即生成！");
@@ -37,12 +35,10 @@ namespace GameFramework.Core
         {
             if (NetworkManager.Instance != null)
             {
-                // [修复] 事件名称改为 OnGameDataReceived
                 NetworkManager.Instance.OnGameDataReceived -= OnGameDataReceived;
             }
         }
 
-        // [可选] 方法名也可以顺手改成 OnGameDataReceived，保持一致
         private void OnGameDataReceived(GamesDTO data)
         {
             Debug.Log($"[GameWorldLoader] 开始生成流程 -> Tile: {data.Tile?.Count}, Building: {data.Building?.Count}");
@@ -60,7 +56,13 @@ namespace GameFramework.Core
                 foreach (var tile in data.Tile)
                 {
                     CreateIslandRequest(entityManager, tile);
-                    if (firstIslandPos == null) firstIslandPos = new int3(tile.posX, tile.posY, tile.posZ);
+                    // [坐标系修正] 记录相机焦点时，也要进行 Y/Z 互换
+                    // Server(X, Y, Z_Height) -> Unity(X, Y_Height, Z)
+                    // 对应 DTO(posX, posY, posZ) -> Unity(posX, posZ, posY)
+                    if (firstIslandPos == null)
+                    {
+                        firstIslandPos = new int3(tile.posX, tile.posZ, tile.posY);
+                    }
                 }
             }
 
@@ -114,15 +116,29 @@ namespace GameFramework.Core
             if (islandCfg == null) return;
 
             var requestEntity = em.CreateEntity();
+
+            // [坐标系修正] Server(X, Y, Z_Height) -> Unity(X, Y_Height, Z)
+            int3 unityPos = new int3(tile.posX, tile.posZ, tile.posY);
+
+            // 1. 添加生成请求组件
             em.AddComponentData(requestEntity, new PlaceObjectRequest
             {
                 ObjectId = tile.tile_id,
-                Position = new int3(tile.posX, tile.posY, tile.posZ),
+                Position = unityPos,
                 Type = PlacementType.Island,
                 Size = new int3(islandCfg.Length, islandCfg.Height, islandCfg.Width),
                 Rotation = quaternion.identity,
                 RotationIndex = 0,
                 AirspaceHeight = islandCfg.AirHeight
+            });
+
+            // 2. [新增] 添加状态机组件，携带后端时间数据
+            em.AddComponentData(requestEntity, new IslandStatusComponent
+            {
+                State = tile.state,
+                StartTime = tile.start_time,
+                EndTime = tile.end_time,
+                CreateTime = tile.create_time
             });
         }
 
@@ -135,13 +151,17 @@ namespace GameFramework.Core
             int length = buildCfg.Length;
             int width = buildCfg.Width;
 
-            // [修复] 现在 DTO 包含 rotate 字段了，这里不会报错
             if (build.rotate % 2 != 0) { int t = length; length = width; width = t; }
+
+            // [坐标系修正] Server(X, Y, Z_Height) -> Unity(X, Y_Height, Z)
+            // 修正前: new int3(build.posX, build.posY, build.posZ)
+            // 修正后: new int3(build.posX, build.posZ, build.posY)
+            int3 unityPos = new int3(build.posX, build.posZ, build.posY);
 
             em.AddComponentData(requestEntity, new PlaceObjectRequest
             {
                 ObjectId = build.building_id,
-                Position = new int3(build.posX, build.posY, build.posZ),
+                Position = unityPos,
                 Type = PlacementType.Building,
                 Size = new int3(length, 1, width),
                 Rotation = quaternion.RotateY(math.radians(90 * build.rotate)),

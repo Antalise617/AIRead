@@ -46,9 +46,7 @@ namespace HotUpdate.UI
         {
             if (NetworkManager.Instance != null)
             {
-                // 1. 监听登录成功 -> 刷新列表
                 NetworkManager.Instance.OnLoginSuccess += OnLoginSuccess;
-                // 2. 监听游戏数据 -> 进入游戏
                 NetworkManager.Instance.OnGameDataReceived += OnJoinGameSuccess;
             }
         }
@@ -62,7 +60,6 @@ namespace HotUpdate.UI
             }
         }
 
-        // 处理登录成功：只负责刷新列表
         private async void OnLoginSuccess()
         {
             await UniTask.SwitchToMainThread();
@@ -71,23 +68,21 @@ namespace HotUpdate.UI
             SelectDefaultServer();
         }
 
-        // 处理进入游戏成功：关闭面板，逻辑转交 GameWorldLoader
         private void OnJoinGameSuccess(GamesDTO data)
         {
             Debug.Log("[ServerSelectPanel] 加入游戏成功，关闭选服界面");
             Hide();
         }
 
-        // 点击开始游戏：调用专用的 SendGameRequest
         private void OnStartGameClick()
         {
             if (_currentSelectedServer == null) return;
 
             Debug.Log($"[ServerSelectPanel] 点击开始，请求进入服务器: ID {_currentSelectedServer.server_id}");
 
+            // 发送 JoinGame 请求
+            // 此时 NetworkManager 内部已经通过 SwitchServer 切换到了目标 IP
             var joinReq = new JoinGameDTO { server_id = _currentSelectedServer.server_id };
-
-            // 使用通用的 SendGameRequest
             NetworkManager.Instance.SendGameRequest("/player/joinGame", joinReq);
         }
 
@@ -103,7 +98,6 @@ namespace HotUpdate.UI
             }
         }
 
-        // ... (省略 SelectDefaultServer 和 OnGetItemByRowColumn 的实现，保持原样即可) ...
         private void SelectDefaultServer()
         {
             if (_serverList != null && _serverList.Count > 0) UpdateUI(_serverList[0]);
@@ -113,6 +107,14 @@ namespace HotUpdate.UI
         {
             _currentSelectedServer = server;
             if (m_txt_ServerName) m_txt_ServerName.text = server.name;
+
+            // =========================================================
+            // [关键修改] 选中服务器时，通知 NetworkManager 切换底层 IP/端口
+            // =========================================================
+            if (NetworkManager.Instance != null)
+            {
+                NetworkManager.Instance.SwitchServer(server);
+            }
         }
 
         private LoopGridViewItem OnGetItemByRowColumn(LoopGridView gridView, int itemIndex, int row, int column)

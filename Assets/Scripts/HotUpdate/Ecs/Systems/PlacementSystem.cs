@@ -162,7 +162,7 @@ namespace GameFramework.ECS.Systems
             int3 finalSize = (state.RotationIndex % 2 == 1) ? new int3(baseSize.z, baseSize.y, baseSize.x) : baseSize;
             state.IsPositionValid = ValidatePosition(state.Type, state.CurrentGridPos, finalSize);
 
-            UpdatePreviewTransform(state.CurrentGridPos, finalSize, state.RotationIndex, gridConfig.CellSize);
+            UpdatePreviewTransform(state.CurrentGridPos, finalSize, state.RotationIndex, gridConfig.CellSize, state.Type);
             UpdatePreviewMaterial(state.IsPositionValid);
         }
 
@@ -208,7 +208,7 @@ namespace GameFramework.ECS.Systems
             state.CurrentGridPos = targetGridPos;
             state.IsPositionValid = ValidatePosition(state.Type, targetGridPos, finalSize);
 
-            UpdatePreviewTransform(targetGridPos, finalSize, state.RotationIndex, gridConfig.CellSize);
+            UpdatePreviewTransform(targetGridPos, finalSize, state.RotationIndex, gridConfig.CellSize, state.Type);
             UpdatePreviewMaterial(state.IsPositionValid);
         }
 
@@ -266,29 +266,57 @@ namespace GameFramework.ECS.Systems
                 int3 baseSize = GetObjectSizeFromConfig(state.CurrentObjectId, state.Type);
                 int3 finalSize = (state.RotationIndex % 2 == 1) ? new int3(baseSize.z, baseSize.y, baseSize.x) : baseSize;
                 state.IsPositionValid = ValidatePosition(state.Type, state.CurrentGridPos, finalSize);
-                UpdatePreviewTransform(state.CurrentGridPos, finalSize, state.RotationIndex, gridConfig.CellSize);
+                UpdatePreviewTransform(state.CurrentGridPos, finalSize, state.RotationIndex, gridConfig.CellSize, state.Type);
                 UpdatePreviewMaterial(state.IsPositionValid);
             }
         }
 
-        // [新增] 异步刷新桥梁显示
-        private async UniTaskVoid RefreshBridgeVisualsAsync()
+        // [核心修改] 异步等待网格真正更新后再刷新
+        private async UniTaskVoid RefreshBridgeVisualsAsync(int3 checkPos)
         {
-            // 等待一帧，确保 PlaceObjectRequest 被处理，GridSystem 数据已更新
-            await UniTask.NextFrame();
+            // 设置超时，防止死循环 (3秒)
+            float timeout = 3.0f;
+            float timer = 0f;
 
-            // 检查状态：确保玩家还在造桥模式中
+            // 循环等待，直到 GridSystem 认为该位置已经“不可建造桥梁”（说明桥梁已经成功注册占位）
+            // 注意：IsBridgeBuildable 返回 true 代表可以造，返回 false 代表被占用或不可造
+            while (_gridSystem.IsBridgeBuildable(checkPos) && timer < timeout)
+            {
+                await UniTask.NextFrame();
+                // [修复1] 显式使用 UnityEngine.Time，解决 SystemBase.Time 冲突
+                timer += UnityEngine.Time.deltaTime;
+            }
+
+            // 确保玩家还在造桥模式中
             if (!SystemAPI.HasSingleton<PlacementStateComponent>()) return;
+
+            // [修复2] 异步方法中不能使用 RefRW (ref struct)，改用 Get/Set Singleton 副本
             var state = SystemAPI.GetSingleton<PlacementStateComponent>();
 
             if (state.IsActive && state.Type == PlacementType.Bridge)
             {
-                // 这里调用的是带参数的方法，需要 GridEntityVisualizationSystem 对应修改
+                // 1. 刷新网格显示（此时新桥梁的四周应该已经是可建造状态）
                 _gridVisSystem?.ShowBridgeableGrids(true);
+
+                // 2. 强制重新检测当前虚影位置的有效性
+                // 因为桥刚造好，当前位置应该变红（无效）
+                var gridConfig = SystemAPI.GetSingleton<GridConfigComponent>();
+                int3 baseSize = GetObjectSizeFromConfig(state.CurrentObjectId, state.Type);
+                int3 finalSize = (state.RotationIndex % 2 == 1) ? new int3(baseSize.z, baseSize.y, baseSize.x) : baseSize;
+
+                state.IsPositionValid = ValidatePosition(state.Type, state.CurrentGridPos, finalSize);
+
+                // 将修改后的状态写回 ECS
+                SystemAPI.SetSingleton(state);
+
+                // 更新虚影颜色 (Green -> Red)
+                UpdatePreviewTransform(state.CurrentGridPos, finalSize, state.RotationIndex, gridConfig.CellSize, state.Type);
+                UpdatePreviewMaterial(state.IsPositionValid);
+
+                Debug.Log($"[PlacementSystem] 桥梁网格刷新完成，当前位置有效性: {state.IsPositionValid}");
             }
         }
 
-        // [修改] 确认放置逻辑
         public bool ConfirmPlacement()
         {
             if (!SystemAPI.HasSingleton<PlacementStateComponent>()) return true;
@@ -311,16 +339,14 @@ namespace GameFramework.ECS.Systems
 
             EventManager.Instance.Publish(new ObjectBuiltEvent { Type = state.Type });
 
-            // [核心修改] 如果是桥梁，不退出建造模式，但触发异步刷新网格
+            // [核心修改] 如果是桥梁，传入当前坐标，启动智能等待刷新
             if (state.Type == PlacementType.Bridge)
             {
-                Debug.Log("[PlacementSystem] 桥梁已放置，保持建造模式并刷新网格");
-                RefreshBridgeVisualsAsync().Forget();
-                // 返回 false，告诉 UI 不要关闭
+                Debug.Log("[PlacementSystem] 桥梁已放置，等待网格数据更新...");
+                RefreshBridgeVisualsAsync(state.CurrentGridPos).Forget();
                 return false;
             }
 
-            // 其他类型（建筑、岛屿）：正常退出
             state.IsActive = false;
             CleanupPreview();
             return true;
@@ -468,11 +494,18 @@ namespace GameFramework.ECS.Systems
             _isResourceLoading = false;
         }
 
-        private void UpdatePreviewTransform(int3 gridPos, int3 size, int rotIndex, float cellSize)
+        private void UpdatePreviewTransform(int3 gridPos, int3 size, int rotIndex, float cellSize, PlacementType type)
         {
             if (_previewObject == null) return;
             if (!_previewObject.activeSelf) _previewObject.SetActive(true);
+
             float3 worldPos = _gridSystem.CalculateObjectCenterWorldPosition(gridPos, size);
+
+            if (type == PlacementType.Island)
+            {
+                worldPos.y += 1f;
+            }
+
             _previewObject.transform.position = worldPos;
             _previewObject.transform.rotation = math.mul(quaternion.RotateY(math.radians(90 * rotIndex)), _defaultRotation);
         }
