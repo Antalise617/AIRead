@@ -130,14 +130,14 @@ namespace GameFramework.ECS.Systems
             if (!IsInGridRange(bottom, top))
             {
                 var config = SystemAPI.GetSingleton<GridConfigComponent>();
-                Debug.LogError($"[GridSystem] 放置失败：超出边界。Bottom:{bottom} Top:{top} MapLimit:({config.Width},{config.Height},{config.Length})");
+                Debug.LogWarning($"[GridSystem] 放置失败：超出边界。Bottom:{bottom} Top:{top} MapLimit:({config.Width},{config.Height},{config.Length})");
                 return false;
             }
 
             // 2. 检查空间是否已被占用
             if (!CheckAreaType(bottom, top, GridType.Space))
             {
-                Debug.LogError($"[GridSystem] 放置失败：区域内已有其他物体。Range: {bottom} to {top}");
+                Debug.LogWarning($"[GridSystem] 放置失败：区域内已有其他物体。Range: {bottom} to {top}");
                 return false;
             }
 

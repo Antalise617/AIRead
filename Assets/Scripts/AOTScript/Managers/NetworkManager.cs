@@ -48,10 +48,6 @@ namespace GameFramework.Managers
             SendLogin("1930616510", "lzhlzh617");
         }
 
-        /// <summary>
-        /// [核心修改] 切换服务器接口
-        /// 在UI面板选择服务器时调用，改变后续请求的目标IP
-        /// </summary>
         public void SwitchServer(ServerDTO targetServer)
         {
             if (targetServer == null)
@@ -60,10 +56,8 @@ namespace GameFramework.Managers
                 return;
             }
 
-            // 1. 更新当前目标IP
             _currentIp = targetServer.ip;
 
-            // 2. 更新端口 (注意DTO中可能是字符串，需要转换)
             if (int.TryParse(targetServer.port, out int port))
             {
                 _currentPort = port;
@@ -77,12 +71,8 @@ namespace GameFramework.Managers
             Debug.Log($"[NetworkManager] ===> 已切换至服务器: {targetServer.name} ({_currentIp}:{_currentPort}) <===");
         }
 
-        /// <summary>
-        /// 1. 专用登录接口：始终连接到 LOGIN_SERVER_IP
-        /// </summary>
         public async void SendLogin(string username, string password)
         {
-            // [重置] 每次登录前，强制将网络目标重置回登录服
             _currentIp = LOGIN_SERVER_IP;
             _currentPort = LOGIN_SERVER_PORT;
 
@@ -98,20 +88,6 @@ namespace GameFramework.Managers
                 _accessToken = response.result.access_token;
                 CachedServerList = response.result.server_list;
                 Debug.Log($"[NetworkManager] 登录成功，获取到 {CachedServerList.Count} 个服务器");
-
-                // [调试] 打印详细列表
-                if (CachedServerList != null)
-                {
-                    Debug.Log("---------- [可用服务器列表] ----------");
-                    foreach (var server in CachedServerList)
-                    {
-                        string statusStr = server.state == 1 ? "良好" : (server.state == 2 ? "拥堵" : "爆满");
-                        Debug.Log($"[ID:{server.server_id}] {server.name} | IP: {server.ip} | Port: {server.port} | 状态: {statusStr}");
-                    }
-                    Debug.Log("------------------------------------");
-                }
-
-                // 触发登录成功事件，UI层监听到后会刷新列表
                 OnLoginSuccess?.Invoke();
             }
             else
@@ -120,12 +96,8 @@ namespace GameFramework.Managers
             }
         }
 
-        /// <summary>
-        /// 2. 通用游戏请求接口：发送到当前选定的 _currentIp
-        /// </summary>
         public async void SendGameRequest(string url, object dto)
         {
-            // 安全检查：防止未选服直接进入游戏
             if (_currentIp == LOGIN_SERVER_IP && url.Contains("joinGame"))
             {
                 Debug.LogWarning("[NetworkManager] 警告：你正在向 [登录服] 发送 JoinGame 请求！请检查 ServerSelectPanel 是否正确调用了 SwitchServer。");
@@ -149,6 +121,32 @@ namespace GameFramework.Managers
         }
 
         // ===================================================================================
+        // [新增] 泛型异步接口，供业务系统直接 await 使用 (PlacementSystem)
+        // ===================================================================================
+        public async UniTask<T> SendAsync<T>(string url, object requestDto)
+        {
+            if (_currentIp == LOGIN_SERVER_IP && url.Contains("create"))
+            {
+                Debug.LogWarning("[NetworkManager] 警告：正在向登录服发送创建请求！请检查是否已选服。");
+            }
+
+            string jsonBody = JsonUtility.ToJson(requestDto);
+            Debug.Log($"[NetworkManager] SendAsync请求: {url} | Body: {jsonBody}");
+
+            var response = await PostAsync<T>(url, jsonBody, true);
+
+            if (response != null && response.status == "success")
+            {
+                return response.result;
+            }
+            else
+            {
+                Debug.LogError($"[NetworkManager] SendAsync失败 {url}: {response?.message}");
+                return default;
+            }
+        }
+
+        // ===================================================================================
         // 4. 底层网络实现
         // ===================================================================================
         private async UniTask<ServerResponse<T>> PostAsync<T>(string url, string jsonBody, bool needAuth)
@@ -157,15 +155,12 @@ namespace GameFramework.Managers
             {
                 try
                 {
-                    // [核心] 使用动态变量连接
                     await client.ConnectAsync(_currentIp, _currentPort);
 
                     using (NetworkStream stream = client.GetStream())
                     {
-                        // 构造 HTTP 头
                         StringBuilder sb = new StringBuilder();
                         sb.Append($"POST {url} HTTP/1.1\r\n");
-                        // Host 头也动态修改
                         sb.Append($"Host: {_currentIp}:{_currentPort}\r\n");
                         sb.Append("Content-Type: application/json\r\n");
                         if (needAuth && !string.IsNullOrEmpty(_accessToken))
@@ -176,12 +171,10 @@ namespace GameFramework.Managers
                         sb.Append($"Content-Length: {bodyBytes.Length}\r\n");
                         sb.Append("Connection: close\r\n\r\n");
 
-                        // 发送
                         byte[] headerBytes = Encoding.UTF8.GetBytes(sb.ToString());
                         await stream.WriteAsync(headerBytes, 0, headerBytes.Length);
                         await stream.WriteAsync(bodyBytes, 0, bodyBytes.Length);
 
-                        // 接收
                         using (MemoryStream ms = new MemoryStream())
                         {
                             byte[] buffer = new byte[8192];
@@ -195,12 +188,7 @@ namespace GameFramework.Managers
                             if (totalData.Length > 0)
                             {
                                 string rawResponse = Encoding.UTF8.GetString(totalData);
-
-                                // =========================================================
-                                // [新增] 打印每一次请求返回的原始数据 (包含 Header 和 Body)
-                                // =========================================================
                                 Debug.Log($"[NetworkManager] 收到响应 [{url}]:\n{rawResponse}");
-
                                 return ParseServerResponse<T>(rawResponse);
                             }
                         }
@@ -255,8 +243,8 @@ namespace GameFramework.Managers
     {
         public int server_id;
         public string name;
-        public string ip;   // 游戏服IP
-        public string port; // 游戏服端口
+        public string ip;
+        public string port;
         public int is_open;
         public int state;
         public long create_time;
@@ -290,20 +278,18 @@ namespace GameFramework.Managers
     {
         public string _id;
         public int tile_id;
-        public int tile_type;
-        public int level;
+        public int tile_index;
         public int is_fixed;
+        public int level;
         public int posX;
         public int posY;
         public int posZ;
-
-        // [原有字段]
         public int state;
-
-        // [新增字段] 配合后端数据结构
-        public long start_time;  // 开始时间
-        public long end_time;    // 结束时间
-        public long create_time; // 创建时间
+        public long start_time;
+        public long end_time;
+        public long create_time;
+        public int videoCount;
+        public int continueState;
     }
 
     [Serializable]
@@ -319,7 +305,9 @@ namespace GameFramework.Managers
         public int rotate;
         public int state;
         public long start_time;
+        public long startProduceTime;
         public long end_time;
+        public int videoCount;
         public int PowerState;
     }
 
@@ -331,5 +319,26 @@ namespace GameFramework.Managers
         public int item_id;
         public int count;
         public int used;
+    }
+
+    // [新增] 对应 /building/create
+    [Serializable]
+    public class BuildingCreateDTO
+    {
+        public int building_id;
+        public int posX;
+        public int posY;
+        public int posZ;
+        public int rotate;
+    }
+
+    [Serializable]
+    public class TileCreateDTO
+    {
+        public int tile_id;     // 配置ID
+        public int posX;
+        public int posY;
+        public int posZ;
+        // 岛屿通常没有旋转，如果有可自行添加
     }
 }

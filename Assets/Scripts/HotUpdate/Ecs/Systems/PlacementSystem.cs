@@ -30,7 +30,7 @@ namespace GameFramework.ECS.Systems
         private bool _isFirstFrameAfterLoad = false;
 
         private quaternion _defaultRotation = quaternion.identity;
-        private int _currentPlacementLayer = 4;
+        private int _currentPlacementLayer = 5;
 
         private UnityEngine.Material _validMat;
         private UnityEngine.Material _invalidMat;

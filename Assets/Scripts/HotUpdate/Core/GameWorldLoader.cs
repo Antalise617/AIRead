@@ -47,12 +47,18 @@ namespace GameFramework.Core
 
         private async UniTaskVoid LoadWorldRoutine(GamesDTO data)
         {
+            // [新增] 初始等待：确保 ECS 世界和 GridSystem 完成初始化
+            await UniTask.NextFrame();
+
             var entityManager = World.DefaultGameObjectInjectionWorld.EntityManager;
             int3? firstIslandPos = null;
 
-            // 1. 生成岛屿
+            // ========================================================================
+            // 阶段 1: 优先生成岛屿 (填充 Grid 数据)
+            // ========================================================================
             if (data.Tile != null)
             {
+                Debug.Log($"[GameWorldLoader] 阶段1: 发送 {data.Tile.Count} 个岛屿生成请求...");
                 foreach (var tile in data.Tile)
                 {
                     CreateIslandRequest(entityManager, tile);
@@ -66,16 +72,25 @@ namespace GameFramework.Core
                 }
             }
 
-            // 2. 生成建筑
+            // [核心修复] 
+            // 必须等待一帧！
+            // 此时 ECS 系统会处理上述 Island 请求，GridSystem 会注册岛屿信息。
+            // 只有这一步完成后，WorldGrid 中对应坐标才会变成 "IsBuildable = true"。
+            await UniTask.NextFrame();
+
+            // ========================================================================
+            // 阶段 2: 生成建筑 (读取 Grid 数据)
+            // ========================================================================
             if (data.Building != null)
             {
+                Debug.Log($"[GameWorldLoader] 阶段2: 岛屿数据已就绪，开始发送 {data.Building.Count} 个建筑生成请求...");
                 foreach (var build in data.Building)
                 {
                     CreateBuildingRequest(entityManager, build);
                 }
             }
 
-            // 等待一帧，让 ECS 系统处理请求
+            // 再等待一帧，让建筑请求被 ECS 处理完 (可选，主要是为了确保后续相机聚焦等逻辑在物体生成后执行)
             await UniTask.NextFrame();
 
             // 3. 聚焦相机
@@ -132,7 +147,7 @@ namespace GameFramework.Core
                 AirspaceHeight = islandCfg.AirHeight
             });
 
-            // 2. [新增] 添加状态机组件，携带后端时间数据
+            // 2. 添加状态机组件，携带后端时间数据
             em.AddComponentData(requestEntity, new IslandStatusComponent
             {
                 State = tile.state,

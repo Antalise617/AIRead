@@ -23,6 +23,9 @@ namespace GameFramework.ECS.Systems
         private GridEntityVisualizationSystem _visSystem;
         private HashSet<int> _loadingAssets = new HashSet<int>();
 
+        // [新增] 用于记录已经完成“数据注册”但还在等待“资源加载”的请求实体
+        private HashSet<Entity> _processedRequests = new HashSet<Entity>();
+
         protected override void OnCreate()
         {
             base.OnCreate();
@@ -53,122 +56,157 @@ namespace GameFramework.ECS.Systems
             var requests = query.ToComponentDataArray<PlaceObjectRequest>(Allocator.Temp);
 
             // 只有当检测到请求时才打印，避免刷屏
-            Debug.Log($"[ObjectSpawningSystem] 检测到 {entities.Length} 个生成请求...");
+            Debug.Log($"[ObjectSpawningSystem] 本帧处理 {entities.Length} 个生成请求...");
 
+            // ========================================================================
+            // [关键修改] 第一轮循环：优先处理岛屿 (Islands)
+            // 目的：确保岛屿的网格数据(GridData)在这一帧立刻注册，哪怕资源还在加载。
+            // 这样同一帧或下一帧的建筑请求就能检测到合法的地基。
+            // ========================================================================
             for (int i = 0; i < entities.Length; i++)
             {
-                var entity = entities[i];
-                var req = requests[i];
-                bool processed = false;
-
-                if (req.Type == PlacementType.Island)
+                if (requests[i].Type == PlacementType.Island)
                 {
-                    Debug.Log($"[Spawn-Island] 处理岛屿请求 ID:{req.ObjectId} Pos:{req.Position} Size:{req.Size}");
-
-                    // 1. 检查位置是否合法
-                    if (!_gridSystem.CheckIslandPlacement(req.Position, req.Size, req.AirspaceHeight))
-                    {
-                        Debug.LogError($"[Spawn-Island] ❌ 位置检测失败！坐标 {req.Position} 可能超出边界或重叠。");
-                        EntityManager.DestroyEntity(entity);
-                        continue;
-                    }
-
-                    // 2. 尝试生成物体 (包含资源加载)
-                    if (TrySpawnObject(req, out Entity spawned))
-                    {
-                        Debug.Log($"[Spawn-Island] ✅ 实体生成成功！Entity: {spawned}");
-                        var islandBaseData = ConfigManager.Instance.Tables.TbIsland.GetOrDefault(req.ObjectId);
-                        if (islandBaseData != null)
-                        {
-                            _gridSystem.RegisterIsland(req.Position, islandBaseData, req.RotationIndex);
-                            InitializeIslandLogicAttributes(spawned);
-                            EntityManager.AddComponentData(spawned, new IslandComponent
-                            {
-                                ConfigId = req.ObjectId,
-                                Size = req.Size,
-                                AirSpace = req.AirspaceHeight
-                            });
-
-                            // [新增] 传递状态机组件 (从 Request Entity -> Spawned Entity)
-                            if (EntityManager.HasComponent<IslandStatusComponent>(entity))
-                            {
-                                var status = EntityManager.GetComponentData<IslandStatusComponent>(entity);
-                                EntityManager.AddComponentData(spawned, status);
-                            }
-                            else
-                            {
-                                // 如果没有状态组件(例如本地放置)，给一个默认值
-                                EntityManager.AddComponentData(spawned, new IslandStatusComponent
-                                {
-                                    State = 1,
-                                    CreateTime = (long)System.DateTime.UtcNow.Subtract(new System.DateTime(1970, 1, 1)).TotalSeconds
-                                });
-                            }
-
-                            processed = true;
-                        }
-                    }
-                    else
-                    {
-                        Debug.LogWarning($"[Spawn-Island] ⏳ 资源未就绪，正在异步加载 ID:{req.ObjectId}...");
-                    }
+                    ProcessIslandRequest(entities[i], requests[i]);
                 }
-                else if (req.Type == PlacementType.Building)
+            }
+
+            // ========================================================================
+            // [关键修改] 第二轮循环：处理其他物体 (Buildings, Bridges)
+            // 此时，如果是同一帧进来的岛屿，其网格数据已经在上面被注册了。
+            // ========================================================================
+            for (int i = 0; i < entities.Length; i++)
+            {
+                if (requests[i].Type != PlacementType.Island)
                 {
-                    // ========================================================================
-                    // [关键修改] 打印详细日志，排查建筑位置错误
-                    // ========================================================================
-                    Debug.Log($"[Spawn-Building] 处理建筑请求 ID:{req.ObjectId} Pos:{req.Position} Size:{req.Size}");
-
-                    int3 end = req.Position + req.Size - new int3(1, 1, 1);
-                    if (!_gridSystem.IsBuildingBuildable(req.Position, end))
-                    {
-                        Debug.LogError($"[Spawn-Building] ❌ 建筑位置检测失败: Start:{req.Position} End:{end}");
-                        EntityManager.DestroyEntity(entity);
-                        continue;
-                    }
-
-                    if (TrySpawnObject(req, out Entity spawned))
-                    {
-                        _gridSystem.RegisterBuilding(req.Position, req.Size, new FixedString64Bytes(req.ObjectId.ToString()));
-
-                        var buildCfg = ConfigManager.Instance.Tables.TbBuild.GetOrDefault(req.ObjectId);
-                        EntityManager.AddComponentData(spawned, new BuildingComponent
-                        {
-                            ConfigId = req.ObjectId,
-                            Size = req.Size,
-                            BuildingType = (int)buildCfg.BuildingType,
-                            Name = new FixedString64Bytes(buildCfg.Name)
-                        });
-
-                        processed = true;
-                    }
+                    ProcessOtherRequest(entities[i], requests[i]);
                 }
-                else if (req.Type == PlacementType.Bridge)
+            }
+
+            entities.Dispose();
+            requests.Dispose();
+        }
+
+        private void ProcessIslandRequest(Entity entity, PlaceObjectRequest req)
+        {
+            // 1. 数据层注册 (仅需执行一次)
+            // 如果这个请求还没进行过逻辑注册，先注册网格数据
+            if (!_processedRequests.Contains(entity))
+            {
+                Debug.Log($"[Spawn-Island] 处理岛屿逻辑注册 ID:{req.ObjectId} Pos:{req.Position}");
+
+                // 检查位置
+                if (!_gridSystem.CheckIslandPlacement(req.Position, req.Size, req.AirspaceHeight))
                 {
-                    Debug.Log($"[Spawn-Bridge] 处理桥梁请求 ID:{req.ObjectId} Pos:{req.Position}");
-
-                    if (!_gridSystem.IsBridgeBuildable(req.Position))
-                    {
-                        Debug.LogError($"[Spawn-Bridge] ❌ 桥梁位置检测失败: {req.Position}");
-                        EntityManager.DestroyEntity(entity);
-                        continue;
-                    }
-
-                    if (TrySpawnObject(req, out Entity spawned))
-                    {
-                        _gridSystem.RegisterBridge(req.Position, new FixedString64Bytes(req.ObjectId.ToString()));
-                        processed = true;
-                    }
+                    Debug.LogError($"[Spawn-Island] ❌ 位置检测失败！坐标 {req.Position} 可能超出边界或重叠。");
+                    EntityManager.DestroyEntity(entity);
+                    return;
                 }
 
-                if (processed)
+                // 获取配置并注册网格 (即使没有模型，网格数据也必须先占位)
+                var islandBaseData = ConfigManager.Instance.Tables.TbIsland.GetOrDefault(req.ObjectId);
+                if (islandBaseData != null)
                 {
+                    _gridSystem.RegisterIsland(req.Position, islandBaseData, req.RotationIndex);
+                    // 标记为已处理逻辑，防止下一帧重复注册网格
+                    _processedRequests.Add(entity);
+                }
+                else
+                {
+                    Debug.LogError($"[Spawn-Island] ❌ 找不到配置 ID:{req.ObjectId}");
+                    EntityManager.DestroyEntity(entity);
+                    return;
+                }
+            }
+
+            // 2. 表现层生成 (尝试加载资源并生成 Entity)
+            if (TrySpawnObject(req, out Entity spawned))
+            {
+                Debug.Log($"[Spawn-Island] ✅ 实体生成成功！Entity: {spawned}");
+
+                InitializeIslandLogicAttributes(spawned);
+                EntityManager.AddComponentData(spawned, new IslandComponent
+                {
+                    ConfigId = req.ObjectId,
+                    Size = req.Size,
+                    AirSpace = req.AirspaceHeight
+                });
+
+                // 传递状态机组件
+                if (EntityManager.HasComponent<IslandStatusComponent>(entity))
+                {
+                    var status = EntityManager.GetComponentData<IslandStatusComponent>(entity);
+                    EntityManager.AddComponentData(spawned, status);
+                }
+                else
+                {
+                    EntityManager.AddComponentData(spawned, new IslandStatusComponent
+                    {
+                        State = 1,
+                        CreateTime = (long)System.DateTime.UtcNow.Subtract(new System.DateTime(1970, 1, 1)).TotalSeconds
+                    });
+                }
+
+                // 完成任务：销毁请求实体，清理缓存
+                EntityManager.DestroyEntity(entity);
+                _processedRequests.Remove(entity);
+            }
+            else
+            {
+                // 资源未就绪，保持请求Entity存在，下一帧继续尝试 TrySpawnObject
+                // 但因为 _processedRequests 已经包含了它，不会再次触发 RegisterIsland
+                Debug.LogWarning($"[Spawn-Island] ⏳ 资源加载中 ID:{req.ObjectId}...");
+            }
+        }
+
+        private void ProcessOtherRequest(Entity entity, PlaceObjectRequest req)
+        {
+            if (req.Type == PlacementType.Building)
+            {
+                Debug.Log($"[Spawn-Building] 处理建筑请求 ID:{req.ObjectId} Pos:{req.Position}");
+
+                int3 end = req.Position + req.Size - new int3(1, 1, 1);
+                // 此时 _gridSystem 应该已经包含刚才注册的岛屿数据了
+                if (!_gridSystem.IsBuildingBuildable(req.Position, end))
+                {
+                    Debug.LogError($"[Spawn-Building] ❌ 建筑位置检测失败: Start:{req.Position} End:{end} (请检查脚下是否有岛屿)");
+                    EntityManager.DestroyEntity(entity);
+                    return;
+                }
+
+                if (TrySpawnObject(req, out Entity spawned))
+                {
+                    _gridSystem.RegisterBuilding(req.Position, req.Size, new FixedString64Bytes(req.ObjectId.ToString()));
+
+                    var buildCfg = ConfigManager.Instance.Tables.TbBuild.GetOrDefault(req.ObjectId);
+                    EntityManager.AddComponentData(spawned, new BuildingComponent
+                    {
+                        ConfigId = req.ObjectId,
+                        Size = req.Size,
+                        BuildingType = (int)buildCfg.BuildingType,
+                        Name = new FixedString64Bytes(buildCfg.Name)
+                    });
+
                     EntityManager.DestroyEntity(entity);
                 }
             }
-            entities.Dispose();
-            requests.Dispose();
+            else if (req.Type == PlacementType.Bridge)
+            {
+                Debug.Log($"[Spawn-Bridge] 处理桥梁请求 ID:{req.ObjectId} Pos:{req.Position}");
+
+                if (!_gridSystem.IsBridgeBuildable(req.Position))
+                {
+                    Debug.LogError($"[Spawn-Bridge] ❌ 桥梁位置检测失败: {req.Position}");
+                    EntityManager.DestroyEntity(entity);
+                    return;
+                }
+
+                if (TrySpawnObject(req, out Entity spawned))
+                {
+                    _gridSystem.RegisterBridge(req.Position, new FixedString64Bytes(req.ObjectId.ToString()));
+                    EntityManager.DestroyEntity(entity);
+                }
+            }
         }
 
         private void InitializeIslandLogicAttributes(Entity islandEntity)
@@ -203,7 +241,7 @@ namespace GameFramework.ECS.Systems
             if (string.IsNullOrEmpty(path))
             {
                 Debug.LogError($"[Spawn] ❌ 配置表中找不到资源路径！Type:{req.Type} ID:{req.ObjectId}");
-                return true;
+                return true; // 返回 true 表示处理“完成”（实际上是失败了，但要销毁请求）
             }
 
             float3 worldPos = _gridSystem.CalculateObjectCenterWorldPosition(req.Position, req.Size);
@@ -221,7 +259,6 @@ namespace GameFramework.ECS.Systems
                 float3 size = new float3(req.Size.x, req.Size.y, req.Size.z) * s;
 
                 // [Collider Offset] 计算碰撞体中心偏移
-                // 如果是岛屿，实体在 Y+1，为了让碰撞体贴合网格平面，碰撞体中心需要下移 1 (即 -1)
                 float3 colliderCenter = float3.zero;
                 if (req.Type == PlacementType.Island)
                 {
