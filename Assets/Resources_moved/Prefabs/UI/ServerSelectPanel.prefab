@@ -1183,11 +1183,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   m_btn_StartGameButton: {fileID: 0}
   m_btn_SelectServerButton: {fileID: 0}
-  m_img_ServerState: {fileID: 0}
   m_txt_ServerName: {fileID: 0}
   m_obj_SelectServerPanel: {fileID: 0}
-  m_btn_CloseButton: {fileID: 0}
   m_obj_Root: {fileID: 0}
+  m_btn_CloseButton: {fileID: 0}
 --- !u!1 &7717819153792898756
 GameObject:
   m_ObjectHideFlags: 0

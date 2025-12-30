@@ -21,13 +21,14 @@ namespace GameFramework.Core
         {
             if (NetworkManager.Instance != null)
             {
-                NetworkManager.Instance.OnJoinGameSuccess += OnJoinGameSuccess;
+                // [修复] 事件名称改为 OnGameDataReceived
+                NetworkManager.Instance.OnGameDataReceived += OnGameDataReceived;
 
                 // 检查是否已经错过了事件（如果有缓存数据，直接加载）
                 if (NetworkManager.Instance.CurrentGameData != null)
                 {
                     Debug.Log("[GameWorldLoader] Start: 发现缓存数据，立即生成！");
-                    OnJoinGameSuccess(NetworkManager.Instance.CurrentGameData);
+                    OnGameDataReceived(NetworkManager.Instance.CurrentGameData);
                 }
             }
         }
@@ -36,11 +37,13 @@ namespace GameFramework.Core
         {
             if (NetworkManager.Instance != null)
             {
-                NetworkManager.Instance.OnJoinGameSuccess -= OnJoinGameSuccess;
+                // [修复] 事件名称改为 OnGameDataReceived
+                NetworkManager.Instance.OnGameDataReceived -= OnGameDataReceived;
             }
         }
 
-        private void OnJoinGameSuccess(GamesDTO data)
+        // [可选] 方法名也可以顺手改成 OnGameDataReceived，保持一致
+        private void OnGameDataReceived(GamesDTO data)
         {
             Debug.Log($"[GameWorldLoader] 开始生成流程 -> Tile: {data.Tile?.Count}, Building: {data.Building?.Count}");
             LoadWorldRoutine(data).Forget();
@@ -80,13 +83,11 @@ namespace GameFramework.Core
             }
             else
             {
-                // 如果没有岛屿，尝试聚焦到 (0,0,0) 或者做个默认视角
                 Debug.LogWarning("[GameWorldLoader] 没有岛屿数据，相机将聚焦到原点");
                 FocusCameraOnIsland(int3.zero);
             }
 
             // 4. 切换到 Playing 状态，正式开始游戏
-            Debug.Log("[GameWorldLoader] 生成完毕，切换状态 -> Playing");
             if (GameStateManager.Instance != null)
             {
                 GameStateManager.Instance.ChangeState(GameState.Playing);
@@ -96,18 +97,12 @@ namespace GameFramework.Core
 
         private void FocusCameraOnIsland(int3 gridPos)
         {
-            if (Camera.main == null)
-            {
-                Debug.LogError("[GameWorldLoader] 找不到 Camera.main！");
-                return;
-            }
+            if (Camera.main == null) return;
 
-            float cellSize = 2.0f; // 请确保和 GridConfig 一致
+            float cellSize = 2.0f; // 需与 GridConfig 一致
             float3 targetWorldPos = new float3(gridPos.x * cellSize, gridPos.y * cellSize, gridPos.z * cellSize);
-            // 稍微偏移一点让岛屿居中
             targetWorldPos += new float3(10f, 0, 10f);
 
-            // 设置上帝视角
             float3 cameraOffset = new float3(-30, 40, -30);
             Camera.main.transform.position = targetWorldPos + cameraOffset;
             Camera.main.transform.LookAt(targetWorldPos);
@@ -116,11 +111,7 @@ namespace GameFramework.Core
         private void CreateIslandRequest(EntityManager em, TileDTO tile)
         {
             var islandCfg = ConfigManager.Instance.Tables.TbIsland.GetOrDefault(tile.tile_id);
-            if (islandCfg == null)
-            {
-                Debug.LogError($"[GameWorldLoader] 配置表中找不到岛屿 ID: {tile.tile_id}");
-                return;
-            }
+            if (islandCfg == null) return;
 
             var requestEntity = em.CreateEntity();
             em.AddComponentData(requestEntity, new PlaceObjectRequest
@@ -143,6 +134,8 @@ namespace GameFramework.Core
             var requestEntity = em.CreateEntity();
             int length = buildCfg.Length;
             int width = buildCfg.Width;
+
+            // [修复] 现在 DTO 包含 rotate 字段了，这里不会报错
             if (build.rotate % 2 != 0) { int t = length; length = width; width = t; }
 
             em.AddComponentData(requestEntity, new PlaceObjectRequest

@@ -23,7 +23,7 @@ MonoBehaviour:
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 056f200c3a24ac84e90446da712a13d0
-    m_Address: island_100001
+    m_Address: island_101001
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
@@ -69,11 +69,6 @@ MonoBehaviour:
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 20279e7f40657c248a2f79ce2a46112c
     m_Address: 1
-    m_ReadOnly: 0
-    m_SerializedLabels: []
-    FlaggedDuringContentUpdateRestriction: 0
-  - m_GUID: 20e13a5c25acedb45b3b6ea288f386be
-    m_Address: island_100004
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
@@ -262,11 +257,6 @@ MonoBehaviour:
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
-  - m_GUID: 8dcc4cb2f14c3854a8a2e53767a58d7a
-    m_Address: island_100005
-    m_ReadOnly: 0
-    m_SerializedLabels: []
-    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 9177299a3b5e4ef46bce65e2fff95573
     m_Address: bridge_300001
     m_ReadOnly: 0
@@ -383,11 +373,6 @@ MonoBehaviour:
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
-  - m_GUID: ce094bccd2841954eb48b9167a712f2a
-    m_Address: island_100003
-    m_ReadOnly: 0
-    m_SerializedLabels: []
-    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: cf2a8c2be4fba2b419d73f6ee270dd66
     m_Address: building_200008
     m_ReadOnly: 0
@@ -440,11 +425,6 @@ MonoBehaviour:
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: eb402f9dde9ec164786464595bc0494d
     m_Address: BuildingProductionPanel
-    m_ReadOnly: 0
-    m_SerializedLabels: []
-    FlaggedDuringContentUpdateRestriction: 0
-  - m_GUID: ecfaaca26b6b6174ca47223df6af6564
-    m_Address: island_100002
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
