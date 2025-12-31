@@ -212,7 +212,7 @@ public class BuildingServicePanel : UIPanel
             }
 
             // 更新 Info_3 (储量)
-            string colorTag = currentTotal >= prod.MaxReserves ? "<color=#FF0000>" : "<color=#FFFFFF>";
+            string colorTag = currentTotal >= prod.MaxReserves ? "<color=#FFFFFF>" : "<color=#FFFFFF>";
             string storageText = $"{colorTag}{currentTotal}</color> / {prod.MaxReserves}";
             if (_infoBlocks.Count > 2) _infoBlocks[2].Text.text = storageText;
 
@@ -254,7 +254,7 @@ public class BuildingServicePanel : UIPanel
             string statusColor = elec.IsPowered ? "#00FF00" : "#FF0000";
             string statusText = elec.IsPowered ? "供电正常" : "电力中断";
             if (m_tmp_PowerInfo != null)
-                m_tmp_PowerInfo.text = $"能耗: {elec.PowerConsumption} KW\n状态: <color={statusColor}>{statusText}</color>";
+                m_tmp_PowerInfo.text = $"能耗: {elec.PowerConsumption} ";
             return elec.IsPowered;
         }
 
@@ -294,11 +294,11 @@ public class BuildingServicePanel : UIPanel
         else if (currentStorage >= prod.MaxReserves)
         {
             // 仓库满了，但没游客来消费
-            SetStateText("商品充足 (等待游客)", Color.yellow);
+            SetStateText("商品充足", Color.yellow);
         }
         else if (CheckIsMissingIngredients())
         {
-            SetStateText("缺少原料 (停止生产)", Color.red);
+            SetStateText("缺少原料", Color.red);
         }
         else
         {

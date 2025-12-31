@@ -53,14 +53,14 @@ namespace GameFramework.Core
             RegisterHotfixSystems(world);
             CreateGlobalComponents(world.EntityManager);
 
-            // 3. 【关键修复】手动启动 GameWorldLoader
-            // 既然是单场景，我们需要确保这个负责生成岛屿的脚本此时已经挂载并运行
-            if (FindObjectOfType<GameWorldLoader>() == null)
+            // 3. 【关键修复】手动启动 GameDataProcessor (原 GameWorldLoader)
+            // 既然是单场景，我们需要确保这个负责解析全量数据的脚本此时已经挂载并运行
+            if (FindObjectOfType<GameDataProcessor>() == null)
             {
-                GameObject loaderGO = new GameObject("GameWorldLoader");
-                loaderGO.AddComponent<GameWorldLoader>();
-                DontDestroyOnLoad(loaderGO); // 保证它一直存在
-                Debug.Log("=== [GameBootstrap] GameWorldLoader 已动态挂载并启动 ===");
+                GameObject processorGO = new GameObject("GameDataProcessor");
+                processorGO.AddComponent<GameDataProcessor>();
+                DontDestroyOnLoad(processorGO); // 保证它一直存在
+                Debug.Log("=== [GameBootstrap] GameDataProcessor 已动态挂载并启动 ===");
             }
 
             // 4. 启动场景测试逻辑 (如果需要)

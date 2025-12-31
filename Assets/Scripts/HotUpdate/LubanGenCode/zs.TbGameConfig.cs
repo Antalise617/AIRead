@@ -14,38 +14,264 @@ namespace cfg.zs
 {
 public partial class TbGameConfig
 {
-    private readonly System.Collections.Generic.Dictionary<int, GameConfig> _dataMap;
-    private readonly System.Collections.Generic.List<GameConfig> _dataList;
-    
+
+     private readonly GameConfig _data;
+
+     public GameConfig Data => _data;
+
     public TbGameConfig(ByteBuf _buf)
     {
-        _dataMap = new System.Collections.Generic.Dictionary<int, GameConfig>();
-        _dataList = new System.Collections.Generic.List<GameConfig>();
-        
-        for(int n = _buf.ReadSize() ; n > 0 ; --n)
-        {
-            GameConfig _v;
-            _v = GameConfig.DeserializeGameConfig(_buf);
-            _dataList.Add(_v);
-            _dataMap.Add(_v.InitialNumberIslands, _v);
-        }
+        int n = _buf.ReadSize();
+        if (n != 1) throw new SerializationException("table mode=one, but size != 1");
+        _data = GameConfig.DeserializeGameConfig(_buf);
     }
 
-    public System.Collections.Generic.Dictionary<int, GameConfig> DataMap => _dataMap;
-    public System.Collections.Generic.List<GameConfig> DataList => _dataList;
 
-    public GameConfig GetOrDefault(int key) => _dataMap.TryGetValue(key, out var v) ? v : null;
-    public GameConfig Get(int key) => _dataMap[key];
-    public GameConfig this[int key] => _dataMap[key];
-
+    /// <summary>
+    /// 地图尺寸格子数（长、宽、高）
+    /// </summary>
+     public System.Collections.Generic.List<int> GridInitialSize => _data.GridInitialSize;
+    /// <summary>
+    /// 岛屿基准高度
+    /// </summary>
+     public int IslandStandardHigh => _data.IslandStandardHigh;
+    /// <summary>
+    /// 初始岛屿数量
+    /// </summary>
+     public int InitialNumberIslands => _data.InitialNumberIslands;
+    /// <summary>
+    /// 初始岛屿(含位置）
+    /// </summary>
+     public System.Collections.Generic.List<System.Collections.Generic.List<int>> InitialIslands => _data.InitialIslands;
+    /// <summary>
+    /// 初始建筑
+    /// </summary>
+     public System.Collections.Generic.List<System.Collections.Generic.List<int>> InitialBuilding => _data.InitialBuilding;
+    /// <summary>
+    /// 初始资源
+    /// </summary>
+     public System.Collections.Generic.List<System.Collections.Generic.List<int>> InitialResources => _data.InitialResources;
+    /// <summary>
+    /// 第一个岛屿建造消耗
+    /// </summary>
+     public System.Collections.Generic.List<System.Collections.Generic.List<int>> IslandConstructionCosts => _data.IslandConstructionCosts;
+    /// <summary>
+    /// 第一个岛屿建造时间(s)
+    /// </summary>
+     public int IslandBuildTime => _data.IslandBuildTime;
+    /// <summary>
+    /// 岛屿建造消耗系数（乘值）
+    /// </summary>
+     public int ConsumptionCoefficient => _data.ConsumptionCoefficient;
+    /// <summary>
+    /// 岛屿建造时间系数（加值）
+    /// </summary>
+     public int TimeCoefficient => _data.TimeCoefficient;
+    /// <summary>
+    /// 岛屿建造观看视频次数上限
+    /// </summary>
+     public int IslandConstructionVideosLimit => _data.IslandConstructionVideosLimit;
+    /// <summary>
+    /// 岛屿建设视频加速时间（S）
+    /// </summary>
+     public int IslandVideoSpeedUpTime => _data.IslandVideoSpeedUpTime;
+    /// <summary>
+    /// 岛屿拆毁返还比例（万分比）
+    /// </summary>
+     public int IslandDemolitionReturn => _data.IslandDemolitionReturn;
+    /// <summary>
+    /// 拆毁冷却时间(S)
+    /// </summary>
+     public int DemolitionCooling => _data.DemolitionCooling;
+    /// <summary>
+    /// 繁荣度
+    /// </summary>
+     public int Prosperity => _data.Prosperity;
+    /// <summary>
+    /// 建筑观看视频上限
+    /// </summary>
+     public int BuildWatchLimit => _data.BuildWatchLimit;
+    /// <summary>
+    /// 建筑观看视频加速时间(s)
+    /// </summary>
+     public int BuildWatchSpeedTime => _data.BuildWatchSpeedTime;
+    /// <summary>
+    /// 岛屿拆除时间比例（同建造时间比,万分比）
+    /// </summary>
+     public int IslandDemolitionTime => _data.IslandDemolitionTime;
+    /// <summary>
+    /// 建筑主亲和加成（万分比）
+    /// </summary>
+     public int MainAffinityBonus => _data.MainAffinityBonus;
+    /// <summary>
+    /// 建筑副亲和加成（万分比）
+    /// </summary>
+     public int SubAffinityBonus => _data.SubAffinityBonus;
+    /// <summary>
+    /// 星级初始掉落率（万分比）
+    /// </summary>
+     public System.Collections.Generic.List<System.Collections.Generic.List<int>> InitialStarlevelDropRate => _data.InitialStarlevelDropRate;
+    /// <summary>
+    /// 掉落率建筑等级提升值（万分比）
+    /// </summary>
+     public System.Collections.Generic.List<System.Collections.Generic.List<int>> BuildingLevelUpgrade => _data.BuildingLevelUpgrade;
+    /// <summary>
+    /// 招募免费刷新次数
+    /// </summary>
+     public int RecruitFreeRefreshTimes => _data.RecruitFreeRefreshTimes;
+    /// <summary>
+    /// 招募刷新重置时间（24小时制）
+    /// </summary>
+     public int RecruitmentRefreshResetTime => _data.RecruitmentRefreshResetTime;
+    /// <summary>
+    /// 招募自动刷新时长
+    /// </summary>
+     public int RecruitmentAutoRefreshDuration => _data.RecruitmentAutoRefreshDuration;
+    /// <summary>
+    /// 招募付费刷新初始消耗
+    /// </summary>
+     public System.Collections.Generic.List<int> RecruitmentPaidRefreshInitialCost => _data.RecruitmentPaidRefreshInitialCost;
+    /// <summary>
+    /// 付费刷新消耗递增值（固定）
+    /// </summary>
+     public System.Collections.Generic.List<int> PaidRefreshIncreasesConsumption => _data.PaidRefreshIncreasesConsumption;
+    /// <summary>
+    /// 付费刷新消耗上限
+    /// </summary>
+     public System.Collections.Generic.List<int> PaidRefreshConsumptionLimit => _data.PaidRefreshConsumptionLimit;
+    /// <summary>
+    /// 初始员工人数
+    /// </summary>
+     public int InitialNumberEmployees => _data.InitialNumberEmployees;
+    /// <summary>
+    /// 每级提升人数
+    /// </summary>
+     public int NumberUpgradesLevel => _data.NumberUpgradesLevel;
+    /// <summary>
+    /// 背包初始容量
+    /// </summary>
+     public int InitialBackpackCapacity => _data.InitialBackpackCapacity;
+    /// <summary>
+    /// 每次扩容数量
+    /// </summary>
+     public int QuantityAddedEachTime => _data.QuantityAddedEachTime;
+    /// <summary>
+    /// 背包容量上限
+    /// </summary>
+     public int BackpackCapacityLimit => _data.BackpackCapacityLimit;
+    /// <summary>
+    /// 垂直高度差
+    /// </summary>
+     public int AirHeight => _data.AirHeight;
+    /// <summary>
+    /// 排队失败惩罚(扣满意度）
+    /// </summary>
+     public int QueueTimeoutPenalty => _data.QueueTimeoutPenalty;
+    /// <summary>
+    /// 消费失败惩罚(扣满意度）
+    /// </summary>
+     public int PenaltiesFailedConsumption => _data.PenaltiesFailedConsumption;
+    /// <summary>
+    /// 飞艇燃油不足补充--(消耗的钻石;补充的燃油数量)
+    /// </summary>
+     public System.Collections.Generic.List<int> AirshipFuelDiamondReplenishment => _data.AirshipFuelDiamondReplenishment;
+    /// <summary>
+    /// 飞艇接客需要的时间-前期接客队列-秒（S）
+    /// </summary>
+     public int AirshipTouristWelcomeTime => _data.AirshipTouristWelcomeTime;
+    /// <summary>
+    /// 飞艇返回需要的时间-接客返回队列-秒（S）
+    /// </summary>
+     public int AirshipTouristReturnTime => _data.AirshipTouristReturnTime;
+    /// <summary>
+    /// 飞艇加速的时间(百分比)
+    /// </summary>
+     public int AirshipTouristTimeAccelerate => _data.AirshipTouristTimeAccelerate;
+    /// <summary>
+    /// 飞艇载客数量
+    /// </summary>
+     public int AirshipTouristPassengerTransportParam => _data.AirshipTouristPassengerTransportParam;
+    /// <summary>
+    /// 游客团免费刷新时间间隔-秒（S）
+    /// </summary>
+     public int TouristGroupRefreshTime => _data.TouristGroupRefreshTime;
+    /// <summary>
+    /// 游客团刷新金币消耗
+    /// </summary>
+     public int TouristGroupRefreshGold => _data.TouristGroupRefreshGold;
+    /// <summary>
+    /// 游客团金币刷新次数
+    /// </summary>
+     public int TouristGrouGoldpRefreshNumber => _data.TouristGrouGoldpRefreshNumber;
+    /// <summary>
+    /// 游客团刷新钻石消耗
+    /// </summary>
+     public int TouristGroupRefreshDiamond => _data.TouristGroupRefreshDiamond;
+    /// <summary>
+    /// 小费满意度概率(百分比)
+    /// </summary>
+     public int GratuitySatisfactionProbability => _data.GratuitySatisfactionProbability;
+    /// <summary>
+    /// 小费金币比例(百分比)
+    /// </summary>
+     public int GratuitySatisfactionGoldPercentage => _data.GratuitySatisfactionGoldPercentage;
+    /// <summary>
+    /// 游客排队上限(按岛屿大小分为3种类型)
+    /// </summary>
+     public System.Collections.Generic.List<int> TouristQueuelimit => _data.TouristQueuelimit;
+    /// <summary>
+    /// Boss的刷新概率
+    /// </summary>
+     public int TouristBossRefreshProbability => _data.TouristBossRefreshProbability;
+    /// <summary>
+    /// “差评”状态参数。（持续时间-秒;游客滞留时间增加-百分比）
+    /// </summary>
+     public System.Collections.Generic.List<int> BossPoorRatingBuffParameter => _data.BossPoorRatingBuffParameter;
+    /// <summary>
+    /// Boss金币奖励参数-百分比(暴怒安抚成功;撒钱)
+    /// </summary>
+     public System.Collections.Generic.List<int> BossGoldRewardParameter => _data.BossGoldRewardParameter;
+    /// <summary>
+    /// “点赞”状态参数。（持续时间-秒;游客滞留时间降低-百分比）
+    /// </summary>
+     public System.Collections.Generic.List<int> BossLikeBuffParameter => _data.BossLikeBuffParameter;
+    /// <summary>
+    /// 生成时的初始满意度
+    /// </summary>
+     public int TouristInitialSatisfaction => _data.TouristInitialSatisfaction;
+    /// <summary>
+    /// BOSS“暴怒”状态小游戏参数--(持续时间|点击次数)
+    /// </summary>
+     public System.Collections.Generic.List<int> BossAngerParameter => _data.BossAngerParameter;
+    /// <summary>
+    /// 员工生成能力属性点参数-百分比
+    /// </summary>
+     public float EmployeeProductionAttrParameter => _data.EmployeeProductionAttrParameter;
+    /// <summary>
+    /// 员工接待能力属性点参数-百分比
+    /// </summary>
+     public float EmployeeReceptionAttrParameter => _data.EmployeeReceptionAttrParameter;
+    /// <summary>
+    /// 接待能力游客上限影响参数
+    /// </summary>
+     public float EmployeeReceptionAttrTouristParameter => _data.EmployeeReceptionAttrTouristParameter;
+    /// <summary>
+    /// 员工招募免费刷新倒计时-秒
+    /// </summary>
+     public int EmployeeFreeRecruitmentTime => _data.EmployeeFreeRecruitmentTime;
+    /// <summary>
+    /// 员工招募需要的钻石数量
+    /// </summary>
+     public int EmployeeRecruitmentDiamondNumber => _data.EmployeeRecruitmentDiamondNumber;
+    /// <summary>
+    /// 金领员工保底次数
+    /// </summary>
+     public int EmployeeGoldCollarRecruitmentParameter => _data.EmployeeGoldCollarRecruitmentParameter;
+    
     public void ResolveRef(Tables tables)
     {
-        foreach(var _v in _dataList)
-        {
-            _v.ResolveRef(tables);
-        }
+        _data.ResolveRef(tables);
     }
-
 }
 
 }

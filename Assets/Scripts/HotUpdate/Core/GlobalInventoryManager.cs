@@ -1,18 +1,19 @@
-using GameFramework.Core;
+ï»¿using GameFramework.Core;
 using System.Collections.Generic;
 using UnityEngine;
-using cfg; // ÒıÓÃÅäÖÃÃüÃû¿Õ¼ä
+using cfg;
 using GameFramework;
 using System;
+using GameFramework.Managers; // [æ–°å¢] å¿…é¡»å¼•ç”¨æ­¤å‘½åç©ºé—´ä»¥ä½¿ç”¨ ItemDTO
 
 namespace Game.HotUpdate
 {
     public class GlobalInventoryManager : Singleton<GlobalInventoryManager>
     {
         private readonly Dictionary<int, long> _inventory = new Dictionary<int, long>();
-        public event Action<int, long, long> OnItemChanged;
 
-        // ... (³£Á¿¶¨Òå¿É±£ÁôÒ²¿ÉÒÆ³ı£¬ÏÖÔÚÂß¼­Ö÷ÒªÒÀÀµÅä±í) ...
+        // å‚æ•°: itemId, delta(å˜åŒ–é‡), total(å½“å‰æ€»é‡)
+        public event Action<int, long, long> OnItemChanged;
 
         protected override void Awake()
         {
@@ -23,27 +24,30 @@ namespace Game.HotUpdate
         {
             _inventory.Clear();
 
-            // 1. ÓÅÏÈ¼ÓÔØ´æµµ
+            // 1. ä¼˜å…ˆåŠ è½½å­˜æ¡£
             if (savedData != null && savedData.Count > 0)
             {
                 foreach (var kvp in savedData)
                 {
                     _inventory[kvp.Key] = kvp.Value;
                 }
-                Debug.Log("[GlobalInventoryManager] ÒÑ¼ÓÔØ´æµµÊı¾İ");
+                Debug.Log("[GlobalInventoryManager] å·²åŠ è½½å­˜æ¡£æ•°æ®");
             }
-            // 2. Ã»ÓĞ´æµµÊ±£¬¶ÁÈ¡¡¾GameConfig.InitialResources¡¿½øĞĞ³õÊ¼»¯
+            // 2. æ²¡æœ‰å­˜æ¡£æ—¶ï¼Œè¯»å–é…ç½®è¡¨
             else
             {
-                Debug.Log("[GlobalInventoryManager] Î´·¢ÏÖ´æµµ£¬¶ÁÈ¡ÅäÖÃ±í³õÊ¼»¯×ÊÔ´...");
+                Debug.Log("[GlobalInventoryManager] æœªå‘ç°å­˜æ¡£ï¼Œè¯»å–é…ç½®è¡¨åˆå§‹åŒ–èµ„æº...");
 
                 var tables = ConfigManager.Instance.Tables;
-                if (tables != null && tables.TbGameConfig.DataList.Count > 0)
+                // [ä¿®æ”¹å‰] if (tables != null && tables.TbGameConfig.DataList.Count > 0)
+                // [ä¿®æ”¹å] ç›´æ¥åˆ¤æ–­è¡¨æ˜¯å¦å­˜åœ¨
+                if (tables != null && tables.TbGameConfig != null)
                 {
-                    // ¡¾ĞŞ¸´¡¿Ö±½Ó»ñÈ¡ DataList µÄµÚÒ»¸öÔªËØ£¬ºöÂÔ Key ÊÇ¶àÉÙ
-                    var gameCfg = tables.TbGameConfig.DataList[0];
+                    // [ä¿®æ”¹å‰] var gameCfg = tables.TbGameConfig.DataList[0];
+                    // [ä¿®æ”¹å] å•ä¾‹æ¨¡å¼ä¸‹ï¼ŒTbGameConfig æœ¬èº«å°±æ˜¯æ•°æ®å…¥å£ï¼ˆæˆ–è€…ä»£ç†äº†æ•°æ®ï¼‰
+                    var gameCfg = tables.TbGameConfig;
 
-                    if (gameCfg != null && gameCfg.InitialResources != null)
+                    if (gameCfg.InitialResources != null)
                     {
                         foreach (var resInfo in gameCfg.InitialResources)
                         {
@@ -58,12 +62,46 @@ namespace Game.HotUpdate
                 }
                 else
                 {
-                    Debug.LogWarning("[GlobalInventoryManager] GameConfig ±íÎª¿Õ£¡");
+                    Debug.LogWarning("[GlobalInventoryManager] GameConfig è¡¨ä¸ºç©ºï¼");
                 }
             }
         }
 
-        // ... (IGameInventoryService ½Ó¿ÚÊµÏÖ±£³Ö²»±ä) ...
+        // ========================================================================
+        // [æ–°å¢] ä¿®å¤ CS1061 é”™è¯¯ï¼šå¤„ç†æœåŠ¡å™¨åŒæ­¥ä¸‹æ¥çš„é“å…·åˆ—è¡¨
+        // ========================================================================
+        public void UpdateItems(List<ItemDTO> items)
+        {
+            if (items == null) return;
+
+            foreach (var item in items)
+            {
+                // ItemDTO ä¸­çš„ count é€šå¸¸æ˜¯å½“å‰æ‹¥æœ‰çš„ç»å¯¹æ•°é‡
+                UpdateSingleItemFromNetwork(item.item_id, item.count);
+            }
+
+            Debug.Log($"[GlobalInventoryManager] å·²åŒæ­¥æ›´æ–° {items.Count} ä¸ªç‰©å“æ•°æ®");
+        }
+
+        /// <summary>
+        /// å†…éƒ¨è¾…åŠ©ï¼šæ ¹æ®æœ€æ–°æ€»é‡æ›´æ–°æœ¬åœ°ç¼“å­˜ï¼Œå¹¶è®¡ç®—å·®å€¼è§¦å‘äº‹ä»¶
+        /// </summary>
+        private void UpdateSingleItemFromNetwork(int itemId, long serverCount)
+        {
+            long localCount = GetItemCount(itemId);
+
+            // å¦‚æœæ•°é‡æœ‰å˜åŒ–ï¼Œæ‰æ‰§è¡Œæ›´æ–°å’Œå›è°ƒ
+            if (localCount != serverCount)
+            {
+                _inventory[itemId] = serverCount;
+
+                long delta = serverCount - localCount;
+                OnItemChanged?.Invoke(itemId, delta, serverCount);
+
+                // Debug.Log($"[Inventory Sync] ID:{itemId} å˜åŒ–:{delta} å½“å‰:{serverCount}");
+            }
+        }
+        // ========================================================================
 
         public Item GetConfig(int itemId)
         {
@@ -78,19 +116,13 @@ namespace Game.HotUpdate
         public void AddItem(int itemId, long amount)
         {
             if (amount <= 0) return;
-
-            // Ğ£ÑéÎïÆ·IDÊÇ·ñÓĞĞ§
-            if (GetConfig(itemId) == null)
-            {
-                Debug.LogError($"[GlobalInventoryManager] ÎŞ·¨Ìí¼ÓÎïÆ·£¬ID {itemId} ÔÚµÀ¾ß±íÖĞ²»´æÔÚ£¡");
-                return;
-            }
+            if (GetConfig(itemId) == null) return;
 
             if (!_inventory.ContainsKey(itemId)) _inventory[itemId] = 0;
             _inventory[itemId] += amount;
 
             OnItemChanged?.Invoke(itemId, amount, _inventory[itemId]);
-            Debug.Log($"[Inventory] »ñµÃÎïÆ·: {itemId} x{amount} (µ±Ç°: {_inventory[itemId]})");
+            Debug.Log($"[Inventory] è·å¾—ç‰©å“: {itemId} x{amount} (å½“å‰: {_inventory[itemId]})");
         }
 
         public bool TryConsumeItem(int itemId, long amount)

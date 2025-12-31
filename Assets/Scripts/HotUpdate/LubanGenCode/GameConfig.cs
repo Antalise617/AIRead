@@ -16,6 +16,8 @@ public sealed partial class GameConfig : Luban.BeanBase
 {
     public GameConfig(ByteBuf _buf) 
     {
+        {int n0 = System.Math.Min(_buf.ReadSize(), _buf.Size);GridInitialSize = new System.Collections.Generic.List<int>(n0);for(var i0 = 0 ; i0 < n0 ; i0++) { int _e0;  _e0 = _buf.ReadInt(); GridInitialSize.Add(_e0);}}
+        IslandStandardHigh = _buf.ReadInt();
         InitialNumberIslands = _buf.ReadInt();
         {int n0 = System.Math.Min(_buf.ReadSize(), _buf.Size);InitialIslands = new System.Collections.Generic.List<System.Collections.Generic.List<int>>(n0);for(var i0 = 0 ; i0 < n0 ; i0++) { System.Collections.Generic.List<int> _e0;  {int n1 = System.Math.Min(_buf.ReadSize(), _buf.Size);_e0 = new System.Collections.Generic.List<int>(n1);for(var i1 = 0 ; i1 < n1 ; i1++) { int _e1;  _e1 = _buf.ReadInt(); _e0.Add(_e1);}} InitialIslands.Add(_e0);}}
         {int n0 = System.Math.Min(_buf.ReadSize(), _buf.Size);InitialBuilding = new System.Collections.Generic.List<System.Collections.Generic.List<int>>(n0);for(var i0 = 0 ; i0 < n0 ; i0++) { System.Collections.Generic.List<int> _e0;  {int n1 = System.Math.Min(_buf.ReadSize(), _buf.Size);_e0 = new System.Collections.Generic.List<int>(n1);for(var i1 = 0 ; i1 < n1 ; i1++) { int _e1;  _e1 = _buf.ReadInt(); _e0.Add(_e1);}} InitialBuilding.Add(_e0);}}
@@ -81,6 +83,14 @@ public sealed partial class GameConfig : Luban.BeanBase
         return new GameConfig(_buf);
     }
 
+    /// <summary>
+    /// 地图尺寸格子数（长、宽、高）
+    /// </summary>
+    public readonly System.Collections.Generic.List<int> GridInitialSize;
+    /// <summary>
+    /// 岛屿基准高度
+    /// </summary>
+    public readonly int IslandStandardHigh;
     /// <summary>
     /// 初始岛屿数量
     /// </summary>
@@ -377,11 +387,15 @@ public sealed partial class GameConfig : Luban.BeanBase
         
         
         
+        
+        
     }
 
     public override string ToString()
     {
         return "{ "
+        + "GridInitialSize:" + Luban.StringUtil.CollectionToString(GridInitialSize) + ","
+        + "IslandStandardHigh:" + IslandStandardHigh + ","
         + "InitialNumberIslands:" + InitialNumberIslands + ","
         + "InitialIslands:" + Luban.StringUtil.CollectionToString(InitialIslands) + ","
         + "InitialBuilding:" + Luban.StringUtil.CollectionToString(InitialBuilding) + ","

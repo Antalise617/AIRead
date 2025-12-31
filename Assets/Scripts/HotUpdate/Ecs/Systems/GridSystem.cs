@@ -4,7 +4,7 @@ using GameFramework.ECS.Components;
 using Unity.Collections;
 using Unity.Entities;
 using Unity.Mathematics;
-using UnityEngine; // 引入 UnityEngine 以使用 Debug
+using UnityEngine;
 using Random = Unity.Mathematics.Random;
 
 namespace GameFramework.ECS.Systems
@@ -15,6 +15,15 @@ namespace GameFramework.ECS.Systems
         public NativeParallelHashMap<int3, Entity> BridgeEntityMap;
         private Random _random;
         private bool _isInitialized = false;
+
+        // [新增] 用于 A* 寻路的邻居偏移量 (上下左右 + 上下层)
+        private readonly int3[] _neighborOffsets = new int3[]
+        {
+            new int3(1, 0, 0), new int3(-1, 0, 0),
+            new int3(0, 0, 1), new int3(0, 0, -1),
+            // 如果您的桥梁或地形涉及高度变化（例如坡道），请保留以下两行；如果是纯平面移动，可以注释掉
+            new int3(0, 1, 0), new int3(0, -1, 0)
+        };
 
         protected override void OnCreate()
         {
@@ -59,13 +68,13 @@ namespace GameFramework.ECS.Systems
                     {
                         int3 gridKey = new int3(x, h, z);
                         float3 worldPos = new float3(x * config.CellSize, h * config.CellSize, z * config.CellSize);
-                        WorldGrid.TryAdd(gridKey, new GridCellData { Position = gridKey, WorldPosition = worldPos, Type = GridType.Space });
+                        // 默认 IsMovable 为 false
+                        WorldGrid.TryAdd(gridKey, new GridCellData { Position = gridKey, WorldPosition = worldPos, Type = GridType.Space, IsMovable = false });
                     }
                 }
             }
         }
 
-        // [核心调试] 注册岛屿
         public bool RegisterIsland(int3 anchorPos, Island data, int rotationIndex)
         {
             if (!WorldGrid.IsCreated || data == null) return false;
@@ -90,7 +99,7 @@ namespace GameFramework.ECS.Systems
                     for (int h = 1; h <= data.AirHeight; h++)
                         UpdateCell(anchorPos + new int3(x, h, z), (ref GridCellData d) => { d.Type = GridType.IslandAirspace; d.IslandID = islandId; });
 
-            // 建造区
+            // 建造区 (允许移动)
             if (data.BuildArea != null)
             {
                 foreach (var coord in data.BuildArea)
@@ -113,40 +122,182 @@ namespace GameFramework.ECS.Systems
             return true;
         }
 
-        // [核心调试] 检查位置是否有效
         public bool CheckIslandPlacement(int3 anchorPos, int3 size, int airspace)
         {
-            if (!WorldGrid.IsCreated)
-            {
-                Debug.LogError("[GridSystem] WorldGrid 尚未初始化！");
-                return false;
-            }
-
-            // 岛屿是向下延伸的，所以底部坐标要减去高度
+            if (!WorldGrid.IsCreated) return false;
             int3 bottom = new int3(anchorPos.x, anchorPos.y - size.y + 1, anchorPos.z);
             int3 top = new int3(anchorPos.x + size.x - 1, anchorPos.y + airspace, anchorPos.z + size.z - 1);
 
-            // 1. 检查边界
-            if (!IsInGridRange(bottom, top))
-            {
-                var config = SystemAPI.GetSingleton<GridConfigComponent>();
-                Debug.LogWarning($"[GridSystem] 放置失败：超出边界。Bottom:{bottom} Top:{top} MapLimit:({config.Width},{config.Height},{config.Length})");
-                return false;
-            }
+            if (!IsInGridRange(bottom, top)) return false;
+            return CheckAreaType(bottom, top, GridType.Space);
+        }
 
-            // 2. 检查空间是否已被占用
-            if (!CheckAreaType(bottom, top, GridType.Space))
-            {
-                Debug.LogWarning($"[GridSystem] 放置失败：区域内已有其他物体。Range: {bottom} to {top}");
-                return false;
-            }
-
+        public bool RegisterBuilding(int3 pos, int3 size, FixedString64Bytes id)
+        {
+            int3 end = pos + size - new int3(1, 1, 1);
+            if (!IsBuildingBuildable(pos, end)) return false;
+            for (int x = 0; x < size.x; x++)
+                for (int z = 0; z < size.z; z++)
+                    for (int y = 0; y < size.y; y++)
+                        UpdateCell(pos + new int3(x, y, z), (ref GridCellData d) =>
+                        {
+                            d.Type = GridType.Building;
+                            d.BuildingID = id;
+                            d.IsMovable = true; // 建筑占据的格子允许进入(例如排队)
+                            d.IsBuildable = false;
+                        });
             return true;
         }
 
-        // ... (其他方法保持不变: IsBuildingBuildable, IsBridgeBuildable, RegisterBuilding, UnregisterBuilding, UnregisterIsland 等)
+        public bool RegisterBridge(int3 pos, FixedString64Bytes id)
+        {
+            if (!IsBridgeBuildable(pos)) return false;
 
-        // 辅助方法
+            // 注册桥梁本体：设置为可移动
+            UpdateCell(pos, (ref GridCellData d) =>
+            {
+                d.Type = GridType.PublicBridge;
+                d.BuildingID = id;
+                d.IsMovable = true; // 关键：桥必须可移动
+                d.IsBuildable = false;
+                d.IsBridgeable = false;
+            });
+
+            // 更新周围连接点
+            int3[] offsets = { new int3(1, 0, 0), new int3(-1, 0, 0), new int3(0, 0, 1), new int3(0, 0, -1) };
+            foreach (var off in offsets)
+            {
+                int3 n = pos + off;
+                if (IsValidPosition(n)) UpdateCell(n, (ref GridCellData d) => { if (d.Type == GridType.Space) d.IsBridgeable = true; });
+            }
+            return true;
+        }
+
+        // ====================================================================================
+        // [核心修复] 实现 A* 寻路算法
+        // ====================================================================================
+        public List<int3> FindPath(int3 start, int3 end)
+        {
+            if (!WorldGrid.ContainsKey(start) || !WorldGrid.ContainsKey(end))
+            {
+                Debug.LogWarning($"[GridSystem] 寻路失败：起点或终点不在网格内。{start} -> {end}");
+                return null;
+            }
+
+            // 检查终点是否可达 (可选：如果终点是建筑中心，IsMovable 应该是 true)
+            if (!WorldGrid[end].IsMovable)
+            {
+                // 如果终点不可移动（比如点击了墙壁），可以尝试寻找终点附近最近的可移动格子
+                // 这里暂且直接返回失败
+                // Debug.LogWarning($"[GridSystem] 终点不可移动: {end}");
+                // return null; 
+            }
+
+            // A* 基础数据结构
+            var openSet = new List<int3> { start };
+            var cameFrom = new Dictionary<int3, int3>();
+            var gScore = new Dictionary<int3, float> { { start, 0 } };
+            var fScore = new Dictionary<int3, float> { { start, CalculateHeuristic(start, end) } };
+
+            // 防止无限循环的安全阈值
+            int maxSteps = 5000;
+            int steps = 0;
+
+            while (openSet.Count > 0)
+            {
+                if (steps++ > maxSteps)
+                {
+                    Debug.LogWarning("[GridSystem] 寻路步数过多，强行中止");
+                    return null;
+                }
+
+                // 1. 获取 fScore 最小的节点
+                int3 current = openSet[0];
+                float minF = fScore.ContainsKey(current) ? fScore[current] : float.MaxValue;
+                int minIndex = 0;
+
+                for (int i = 1; i < openSet.Count; i++)
+                {
+                    float f = fScore.ContainsKey(openSet[i]) ? fScore[openSet[i]] : float.MaxValue;
+                    if (f < minF)
+                    {
+                        current = openSet[i];
+                        minF = f;
+                        minIndex = i;
+                    }
+                }
+
+                // 2. 到达终点
+                if (current.Equals(end))
+                {
+                    return ReconstructPath(cameFrom, current);
+                }
+
+                openSet.RemoveAt(minIndex);
+
+                // 3. 遍历邻居
+                foreach (var neighbor in GetNeighbors(current))
+                {
+                    // 假设相邻格子的移动代价为 1
+                    float tentativeG = gScore[current] + 1;
+
+                    if (tentativeG < (gScore.ContainsKey(neighbor) ? gScore[neighbor] : float.MaxValue))
+                    {
+                        cameFrom[neighbor] = current;
+                        gScore[neighbor] = tentativeG;
+                        fScore[neighbor] = tentativeG + CalculateHeuristic(neighbor, end);
+
+                        if (!openSet.Contains(neighbor))
+                        {
+                            openSet.Add(neighbor);
+                        }
+                    }
+                }
+            }
+
+            return null; // 路径未找到
+        }
+
+        private float CalculateHeuristic(int3 a, int3 b)
+        {
+            // 曼哈顿距离 (对于方格地图通常比欧几里得距离效果好)
+            return math.abs(a.x - b.x) + math.abs(a.y - b.y) + math.abs(a.z - b.z);
+        }
+
+        private List<int3> ReconstructPath(Dictionary<int3, int3> cameFrom, int3 current)
+        {
+            var path = new List<int3> { current };
+            while (cameFrom.ContainsKey(current))
+            {
+                current = cameFrom[current];
+                path.Add(current);
+            }
+            path.Reverse();
+            return path;
+        }
+
+        private IEnumerable<int3> GetNeighbors(int3 pos)
+        {
+            foreach (var offset in _neighborOffsets)
+            {
+                int3 nextPos = pos + offset;
+
+                // 1. 边界检查
+                if (!IsValidPosition(nextPos)) continue;
+
+                // 2. 存在性检查
+                if (WorldGrid.TryGetValue(nextPos, out GridCellData cell))
+                {
+                    // 3. 可移动性检查 (IsMovable 在 RegisterIsland/Building/Bridge 时设置)
+                    if (cell.IsMovable)
+                    {
+                        yield return nextPos;
+                    }
+                }
+            }
+        }
+        // ====================================================================================
+
         public bool IsBuildingBuildable(int3 start, int3 end)
         {
             if (!IsInGridRange(start, end)) return false;
@@ -165,30 +316,6 @@ namespace GameFramework.ECS.Systems
                 return cell.BuildingID == "" && (cell.IsBridgeable || cell.Type == GridType.Space);
             }
             return false;
-        }
-
-        public bool RegisterBuilding(int3 pos, int3 size, FixedString64Bytes id)
-        {
-            int3 end = pos + size - new int3(1, 1, 1);
-            if (!IsBuildingBuildable(pos, end)) return false;
-            for (int x = 0; x < size.x; x++)
-                for (int z = 0; z < size.z; z++)
-                    for (int y = 0; y < size.y; y++)
-                        UpdateCell(pos + new int3(x, y, z), (ref GridCellData d) => { d.Type = GridType.Building; d.BuildingID = id; d.IsMovable = true; d.IsBuildable = false; });
-            return true;
-        }
-
-        public bool RegisterBridge(int3 pos, FixedString64Bytes id)
-        {
-            if (!IsBridgeBuildable(pos)) return false;
-            UpdateCell(pos, (ref GridCellData d) => { d.Type = GridType.PublicBridge; d.BuildingID = id; d.IsMovable = true; d.IsBuildable = false; d.IsBridgeable = false; });
-            int3[] offsets = { new int3(1, 0, 0), new int3(-1, 0, 0), new int3(0, 0, 1), new int3(0, 0, -1) };
-            foreach (var off in offsets)
-            {
-                int3 n = pos + off;
-                if (IsValidPosition(n)) UpdateCell(n, (ref GridCellData d) => { if (d.Type == GridType.Space) d.IsBridgeable = true; });
-            }
-            return true;
         }
 
         public float3 CalculateObjectCenterWorldPosition(int3 anchorGridPos, int3 size)
@@ -230,8 +357,5 @@ namespace GameFramework.ECS.Systems
                 default: return new int2(x, z);
             }
         }
-
-        // FindPath 等其他方法省略，确保类结构完整即可
-        public List<int3> FindPath(int3 start, int3 end) => null; // 占位符，保持原文件有此方法的话
     }
 }

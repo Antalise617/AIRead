@@ -149,17 +149,24 @@ namespace GameFramework.ECS.Systems
 
         private async UniTaskVoid CreateWidgetForEntity(Entity entity, IslandStatusComponent status)
         {
-            if (_activeWidgets.ContainsKey(entity)) return;
-            _activeWidgets[entity] = null; // 占位
+            if (_activeWidgets.ContainsKey(entity) && _activeWidgets[entity] != null) return;
 
-            var panel = await UIManager.Instance.ShowPanelAsync<ProgressBarWidget>("ProgressBarWidget");
-            
+            // 先占位，防止异步期间重复创建
+            if (!_activeWidgets.ContainsKey(entity))
+            {
+                _activeWidgets.Add(entity, null);
+            }
+
+            // [修复] 使用 ShowWidgetAsync 获取多实例 Widget
+            // 确保 "ProgressBarWidget" 是 ResourceManager 能加载到的 Prefab 路径
+            var widget = await UIManager.Instance.ShowWidgetAsync<ProgressBarWidget>("ProgressBarWidget", entity);
+
             if (EntityManager.Exists(entity))
             {
-                if (panel != null)
+                if (widget != null)
                 {
-                    _activeWidgets[entity] = panel;
-                    panel.RefreshData(entity, status.State, status.StartTime, status.EndTime);
+                    _activeWidgets[entity] = widget;
+                    widget.RefreshData(entity, status.State, status.StartTime, status.EndTime);
                 }
                 else
                 {
@@ -168,7 +175,8 @@ namespace GameFramework.ECS.Systems
             }
             else
             {
-                if (panel != null) panel.CloseSelf();
+                // 如果加载完实体已经没了，直接回收
+                if (widget != null) widget.CloseSelf();
                 _activeWidgets.Remove(entity);
             }
         }

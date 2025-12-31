@@ -261,7 +261,7 @@ public class BuildingProductionPanel : UIPanel
             string statusColor = elec.IsPowered ? "#00FF00" : "#FF0000";
             string statusText = elec.IsPowered ? "供电正常" : "电力中断";
             if (m_tmp_PowerInfo != null)
-                m_tmp_PowerInfo.text = $"能耗: {elec.PowerConsumption} KW\n状态: <color={statusColor}>{statusText}</color>";
+                m_tmp_PowerInfo.text = $"能耗: {elec.PowerConsumption} ";
             return elec.IsPowered;
         }
         else

@@ -22,6 +22,10 @@ namespace HotUpdate.UI
         private List<ServerDTO> _serverList = null;
         private ServerDTO _currentSelectedServer = null;
 
+        // [新增] 定义默认要选中的服务器索引 (0 = 列表第1个)
+        // 你可以随时修改这个值，或者从本地配置(PlayerPrefs)读取上次选中的服
+        private const int DEFAULT_SERVER_INDEX = 2;
+
         protected override void OnInit()
         {
             base.OnInit();
@@ -65,7 +69,9 @@ namespace HotUpdate.UI
             await UniTask.SwitchToMainThread();
             Debug.Log("[ServerSelectPanel] 登录成功，更新服务器列表 UI");
             RefreshServerList();
-            SelectDefaultServer();
+
+            // [修改] 调用新方法，传入想要自动选中的索引
+            SelectServerByIndex(DEFAULT_SERVER_INDEX);
         }
 
         private void OnJoinGameSuccess(GamesDTO data)
@@ -80,10 +86,12 @@ namespace HotUpdate.UI
 
             Debug.Log($"[ServerSelectPanel] 点击开始，请求进入服务器: ID {_currentSelectedServer.server_id}");
 
-            // 发送 JoinGame 请求
-            // 此时 NetworkManager 内部已经通过 SwitchServer 切换到了目标 IP
-            var joinReq = new JoinGameDTO { server_id = _currentSelectedServer.server_id };
-            NetworkManager.Instance.SendGameRequest("/player/joinGame", joinReq);
+            // [保持修复] 使用 RequestData 封装参数
+            var requestData = new RequestData();
+            requestData.AddField("server_id", _currentSelectedServer.server_id);
+
+            // 发送请求
+            NetworkManager.Instance.SendGameRequest("/player/joinGame", requestData);
         }
 
         public void RefreshServerList()
@@ -98,19 +106,32 @@ namespace HotUpdate.UI
             }
         }
 
-        private void SelectDefaultServer()
+        // [新增] 根据索引选中服务器
+        private void SelectServerByIndex(int index)
         {
-            if (_serverList != null && _serverList.Count > 0) UpdateUI(_serverList[0]);
+            if (_serverList == null || _serverList.Count == 0) return;
+
+            // 1. 越界检查：如果配置的索引超出了列表范围，强制选第 1 个 (index 0)
+            if (index < 0 || index >= _serverList.Count)
+            {
+                Debug.LogWarning($"[ServerSelectPanel] 目标索引 {index} 超出范围 (0-{_serverList.Count - 1})，自动重置为 0");
+                index = 0;
+            }
+
+            // 2. 执行选中逻辑
+            UpdateUI(_serverList[index]);
+
+            Debug.Log($"[ServerSelectPanel] 自动选中服务器: {_serverList[index].name} (Index: {index})");
         }
 
         private void UpdateUI(ServerDTO server)
         {
             _currentSelectedServer = server;
+
+            // [核心逻辑] 更新 UI 显示文本
             if (m_txt_ServerName) m_txt_ServerName.text = server.name;
 
-            // =========================================================
-            // [关键修改] 选中服务器时，通知 NetworkManager 切换底层 IP/端口
-            // =========================================================
+            // 选中服务器时，通知 NetworkManager 切换底层 IP/端口
             if (NetworkManager.Instance != null)
             {
                 NetworkManager.Instance.SwitchServer(server);

@@ -177,9 +177,9 @@ namespace GameFramework.HotUpdate.UI
                 id = island.Id;
                 name = island.Name;
                 // 岛屿消耗通常在全局配置中定义
-                if (tables.TbGameConfig.DataList.Count > 0)
+                if (tables.TbGameConfig != null)
                 {
-                    costs = tables.TbGameConfig.DataList[0].IslandConstructionCosts;
+                    costs = tables.TbGameConfig.IslandConstructionCosts;
                 }
             }
             else if (itemData is Build building)

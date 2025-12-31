@@ -9,7 +9,6 @@ using UnityEngine;
 
 namespace GameFramework.ECS.Systems
 {
-
     //[UpdateInGroup(typeof(PresentationSystemGroup))]
     public partial class GridEntityVisualizationSystem : SystemBase
     {
@@ -19,8 +18,8 @@ namespace GameFramework.ECS.Systems
         private NativeList<Entity> _currentVisualEntities;
         private bool _isResourceLoaded = false;
 
-        // [新增] 可视化模式枚举，用于状态管理
-        private enum VisMode { None, LayerRange, BuildableOnly, BridgeableOnly }
+        // [修改] 可视化模式枚举，增加 WalkableOnly
+        private enum VisMode { None, LayerRange, BuildableOnly, BridgeableOnly, WalkableOnly }
         private VisMode _currentMode = VisMode.None;
         private int2 _currentRange = new int2(-1, -1);
 
@@ -46,7 +45,6 @@ namespace GameFramework.ECS.Systems
             if (entity != Entity.Null)
             {
                 _isResourceLoaded = true;
-                // Debug.Log("[GridVis] 网格资源加载就绪");
             }
         }
 
@@ -57,7 +55,25 @@ namespace GameFramework.ECS.Systems
             _entityFactory.Dispose();
         }
 
-        protected override void OnUpdate() { }
+        // [新增] Update 中检测 P 键输入
+        protected override void OnUpdate()
+        {
+            if (Input.GetKeyDown(KeyCode.P))
+            {
+                // 如果当前已经是显示可移动网格模式，则关闭
+                if (_currentMode == VisMode.WalkableOnly)
+                {
+                    Debug.Log("[GridVis] 隐藏可移动网格");
+                    SetVisualizationRange(-1, -1); // 复用此方法来清理和重置状态
+                }
+                else
+                {
+                    // 否则切换到显示可移动网格
+                    Debug.Log("[GridVis] 显示可移动网格");
+                    ShowWalkableGrids();
+                }
+            }
+        }
 
         /// <summary>
         /// 模式A: 设置显示的层级范围 (用于放置岛屿)
@@ -86,29 +102,28 @@ namespace GameFramework.ECS.Systems
         }
 
         /// <summary>
-        /// 模式B: [新增] 显示所有可建造区域 (用于放置建筑)
-        /// 复刻项目1逻辑：不考虑高度层，显示所有 IsBuildable 的格子
+        /// 模式B: 显示所有可建造区域 (用于放置建筑)
         /// </summary>
         public void ShowBuildableGrids()
         {
             if (!CheckPrerequisites()) return;
 
-            // 状态去重
             if (_currentMode == VisMode.BuildableOnly) return;
 
             ClearCurrentGrid();
             _currentMode = VisMode.BuildableOnly;
-            _currentRange = new int2(-1, -1); // 重置层级记录
+            _currentRange = new int2(-1, -1);
 
             GenerateBuildableGrids();
         }
 
-        // [新增]：显示所有可造桥区域（岛屿连接点）
-        public void ShowBridgeableGrids(bool forceRefresh = false) // 添加可选参数
+        /// <summary>
+        /// 模式C: 显示所有可造桥区域（岛屿连接点）
+        /// </summary>
+        public void ShowBridgeableGrids(bool forceRefresh = false)
         {
             if (!CheckPrerequisites()) return;
 
-            // 只有在非强制刷新且模式相同时才拦截
             if (!forceRefresh && _currentMode == VisMode.BridgeableOnly) return;
 
             ClearCurrentGrid();
@@ -118,36 +133,55 @@ namespace GameFramework.ECS.Systems
             GenerateBridgeableGrids();
         }
 
-        // [新增]：生成可造桥网格的具体逻辑
+        // [新增] 模式D: 显示所有可移动（行走）区域
+        public void ShowWalkableGrids()
+        {
+            if (!CheckPrerequisites()) return;
+
+            if (_currentMode == VisMode.WalkableOnly) return;
+
+            ClearCurrentGrid();
+            _currentMode = VisMode.WalkableOnly;
+            _currentRange = new int2(-1, -1);
+
+            GenerateWalkableGrids();
+        }
+
+        // --- 生成逻辑 ---
+
+        // [新增] 生成可移动网格的具体逻辑
+        private void GenerateWalkableGrids()
+        {
+            var config = SystemAPI.GetSingleton<GridConfigComponent>();
+            var boxGeometry = GetBoxGeometry(config);
+
+            foreach (var kvp in _gridSystem.WorldGrid)
+            {
+                var cellData = kvp.Value;
+                // 筛选 IsWalkable 为 true 的格子
+                if (cellData.IsMovable)
+                {
+                    SpawnSingleGridCell(cellData.WorldPosition, cellData.Position, boxGeometry);
+                }
+            }
+            Debug.Log($"[GridVis] 显示可移动区域，数量: {_currentVisualEntities.Length}");
+        }
+
         private void GenerateBridgeableGrids()
         {
             var config = SystemAPI.GetSingleton<GridConfigComponent>();
             var boxGeometry = GetBoxGeometry(config);
 
-            // 遍历全局网格，寻找 IsBridgeable = true 的格子
             foreach (var kvp in _gridSystem.WorldGrid)
             {
                 var cellData = kvp.Value;
-
-                // 核心筛选：只显示标记为“可造桥”且尚未被完全阻挡的格子
-                // 注意：如果该格子已经被建筑占据(BuildingID不为空)，通常就不显示了，除非你的设计允许重叠
                 if (cellData.IsBridgeable)
                 {
                     SpawnSingleGridCell(cellData.WorldPosition, cellData.Position, boxGeometry);
                 }
-
-                // 扩展逻辑（可选）：如果你希望在此基础上，也显示已经造了桥的位置（方便连接），
-                // 可以加上 || cellData.Type == GridType.PublicBridge
             }
             Debug.Log($"[GridVis] 显示桥梁锚点，数量: {_currentVisualEntities.Length}");
         }
-
-        private bool CheckPrerequisites()
-        {
-            return _isResourceLoaded && _gridSystem != null && _gridSystem.WorldGrid.IsCreated;
-        }
-
-        // --- 生成逻辑 ---
 
         private void GenerateGridInRange(int yMin, int yMax)
         {
@@ -175,19 +209,21 @@ namespace GameFramework.ECS.Systems
         {
             var config = SystemAPI.GetSingleton<GridConfigComponent>();
             var boxGeometry = GetBoxGeometry(config);
-            
-            // 遍历整个哈希表，寻找 IsBuildable = true 的格子
-            // 注意：这比遍历层级稍慢，但在 15万数据量级下 NativeHashMap 迭代非常快
+
             foreach (var kvp in _gridSystem.WorldGrid)
             {
                 var cellData = kvp.Value;
-                // 核心筛选逻辑：只显示可建造的
                 if (cellData.IsBuildable)
                 {
                     SpawnSingleGridCell(cellData.WorldPosition, cellData.Position, boxGeometry);
                 }
             }
             Debug.Log($"[GridVis] 显示可建造区域，数量: {_currentVisualEntities.Length}");
+        }
+
+        private bool CheckPrerequisites()
+        {
+            return _isResourceLoaded && _gridSystem != null && _gridSystem.WorldGrid.IsCreated;
         }
 
         private BoxGeometry GetBoxGeometry(GridConfigComponent config)

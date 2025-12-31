@@ -1,7 +1,7 @@
 using Cysharp.Threading.Tasks;
 using GameFramework.Core;
 using GameFramework.ECS.Components;
-using GameFramework.Managers;
+using GameFramework.Managers; // 确保引用了包含 RequestData 的命名空间
 using Unity.Collections;
 using Unity.Entities;
 using Unity.Mathematics;
@@ -271,68 +271,58 @@ namespace GameFramework.ECS.Systems
             }
         }
 
-        // [核心修改] 异步等待网格真正更新后再刷新
         private async UniTaskVoid RefreshBridgeVisualsAsync(int3 checkPos)
         {
-            // 设置超时，防止死循环 (3秒)
             float timeout = 3.0f;
             float timer = 0f;
 
-            // 循环等待，直到 GridSystem 认为该位置已经“不可建造桥梁”（说明桥梁已经成功注册占位）
-            // 注意：IsBridgeBuildable 返回 true 代表可以造，返回 false 代表被占用或不可造
             while (_gridSystem.IsBridgeBuildable(checkPos) && timer < timeout)
             {
                 await UniTask.NextFrame();
-                // [修复1] 显式使用 UnityEngine.Time，解决 SystemBase.Time 冲突
                 timer += UnityEngine.Time.deltaTime;
             }
 
-            // 确保玩家还在造桥模式中
             if (!SystemAPI.HasSingleton<PlacementStateComponent>()) return;
 
-            // [修复2] 异步方法中不能使用 RefRW (ref struct)，改用 Get/Set Singleton 副本
             var state = SystemAPI.GetSingleton<PlacementStateComponent>();
 
             if (state.IsActive && state.Type == PlacementType.Bridge)
             {
-                // 1. 刷新网格显示（此时新桥梁的四周应该已经是可建造状态）
                 _gridVisSystem?.ShowBridgeableGrids(true);
 
-                // 2. 强制重新检测当前虚影位置的有效性
-                // 因为桥刚造好，当前位置应该变红（无效）
                 var gridConfig = SystemAPI.GetSingleton<GridConfigComponent>();
                 int3 baseSize = GetObjectSizeFromConfig(state.CurrentObjectId, state.Type);
                 int3 finalSize = (state.RotationIndex % 2 == 1) ? new int3(baseSize.z, baseSize.y, baseSize.x) : baseSize;
 
                 state.IsPositionValid = ValidatePosition(state.Type, state.CurrentGridPos, finalSize);
 
-                // 将修改后的状态写回 ECS
                 SystemAPI.SetSingleton(state);
 
-                // 更新虚影颜色 (Green -> Red)
                 UpdatePreviewTransform(state.CurrentGridPos, finalSize, state.RotationIndex, gridConfig.CellSize, state.Type);
                 UpdatePreviewMaterial(state.IsPositionValid);
 
                 Debug.Log($"[PlacementSystem] 桥梁网格刷新完成，当前位置有效性: {state.IsPositionValid}");
             }
         }
+
         private (cfg.Island config, int visualId) GetIslandConfigWithFallback(int objectId)
         {
-            // 1. 尝试直接查找
             var cfg = ConfigManager.Instance.Tables.TbIsland.GetOrDefault(objectId);
             if (cfg != null) return (cfg, objectId);
 
-            // 2. 检查是否是有效的等级ID (例如 102001)
             var levelCfg = ConfigManager.Instance.Tables.TbIslandLevel.GetOrDefault(objectId);
             if (levelCfg != null)
             {
-                // 3. 回退到默认 ID 101001 获取视觉数据
                 var defaultCfg = ConfigManager.Instance.Tables.TbIsland.GetOrDefault(101001);
                 if (defaultCfg != null) return (defaultCfg, 101001);
             }
 
             return (null, 0);
         }
+
+        // ========================================================================
+        // [核心修改] 使用通用的 RequestData 代替具体的 DTO 类
+        // ========================================================================
         public async UniTask ConfirmPlacement()
         {
             if (!SystemAPI.HasSingleton<PlacementStateComponent>()) return;
@@ -352,10 +342,8 @@ namespace GameFramework.ECS.Systems
             PlacementType type = state.Type;
             bool isSuccess = false;
 
-            // [新增] 用于临时存储服务器返回的岛屿数据
             TileDTO serverTileData = null;
 
-            // 获取配置用于后续逻辑
             cfg.Island islandCfg = null;
             int visualId = objectId;
             if (type == PlacementType.Island)
@@ -367,39 +355,42 @@ namespace GameFramework.ECS.Systems
 
             try
             {
-                if (type == PlacementType.Building || type == PlacementType.Bridge)
+                // 桥梁直接本地成功，不走网络请求
+                if (type == PlacementType.Bridge)
                 {
-                    // ... (建筑逻辑保持不变)
-                    var dto = new BuildingCreateDTO
-                    {
-                        building_id = objectId,
-                        posX = gridPos.x,
-                        posY = gridPos.z,
-                        posZ = gridPos.y,
-                        rotate = rotation
-                    };
-                    var result = await NetworkManager.Instance.SendAsync<GamesDTO>("/building/create", dto);
+                    isSuccess = true;
+                    Debug.Log($"[PlacementSystem] 桥梁建造：跳过服务器，直接本地执行。ID:{objectId}");
+                }
+                else if (type == PlacementType.Building)
+                {
+                    // [修改] 使用 RequestData 封装数据
+                    var requestData = new RequestData();
+                    requestData.AddField("building_id", objectId);
+                    requestData.AddField("posX", gridPos.x);
+                    requestData.AddField("posY", gridPos.z); // 注意：服务器Y对应Unity Z
+                    requestData.AddField("posZ", gridPos.y); // 注意：服务器Z对应Unity Y
+                    requestData.AddField("rotate", rotation);
+
+                    // 发送通用请求
+                    var result = await NetworkManager.Instance.SendAsync<GamesDTO>("/building/create", requestData);
                     isSuccess = (result != null);
                 }
                 else if (type == PlacementType.Island)
                 {
-                    var dto = new TileCreateDTO
-                    {
-                        tile_type = objectId,
-                        posX = gridPos.x,
-                        posY = gridPos.z,
-                        posZ = gridPos.y
-                    };
+                    // [修改] 使用 RequestData 封装数据
+                    var requestData = new RequestData();
+                    requestData.AddField("tile_type", objectId);
+                    requestData.AddField("posX", gridPos.x);
+                    requestData.AddField("posY", gridPos.z); // 注意：服务器Y对应Unity Z
+                    requestData.AddField("posZ", gridPos.y); // 注意：服务器Z对应Unity Y
 
-                    Debug.Log($"[PlacementSystem] 发送地块请求: ID={objectId} -> ServerPos=({dto.posX},{dto.posY},{dto.posZ})");
+                    Debug.Log($"[PlacementSystem] 发送地块请求: ID={objectId} -> RequestData已封装");
 
-                    // [修改] 发送请求并捕获返回的数据
-                    var result = await NetworkManager.Instance.SendAsync<GamesDTO>("/tile/create", dto);
+                    var result = await NetworkManager.Instance.SendAsync<GamesDTO>("/tile/create", requestData);
 
                     if (result != null)
                     {
                         isSuccess = true;
-                        // 获取返回列表中最新的那一个（通常是列表的第一个或者唯一一个）
                         if (result.Tile != null && result.Tile.Count > 0)
                         {
                             serverTileData = result.Tile[0];
@@ -438,7 +429,6 @@ namespace GameFramework.ECS.Systems
                     int3 finalSize = (rotation % 2 == 1) ? new int3(baseSize.z, baseSize.y, baseSize.x) : baseSize;
                     int spawnId = (type == PlacementType.Island) ? visualId : objectId;
 
-                    // [修改] 将捕获到的 serverTileData 传递给 SendPlacementRequest
                     SendPlacementRequest(spawnId, type, gridPos, finalSize, rotation, airSpace, serverTileData);
 
                     EventManager.Instance.Publish(new ObjectBuiltEvent { Type = type });
@@ -536,7 +526,6 @@ namespace GameFramework.ECS.Systems
             var requestEntity = EntityManager.CreateEntity();
             quaternion finalRotation = math.mul(quaternion.RotateY(math.radians(90 * rotation)), _defaultRotation);
 
-            // 1. 添加基础请求组件 (保持原有逻辑)
             EntityManager.AddComponentData(requestEntity, new PlaceObjectRequest
             {
                 ObjectId = id,
@@ -548,18 +537,14 @@ namespace GameFramework.ECS.Systems
                 RotationIndex = rotation
             });
 
-            // 2. [新增] 如果有服务器数据，添加状态组件
             if (tileData != null)
             {
-                // 注意：这里需要引用 Unity.Collections 来使用 FixedString64Bytes
                 EntityManager.AddComponentData(requestEntity, new IslandStatusComponent
                 {
                     State = tileData.state,
-                    // 转换时间单位：毫秒 -> 秒
                     StartTime = tileData.start_time / 1000,
                     EndTime = tileData.end_time / 1000,
                     CreateTime = tileData.create_time / 1000,
-                    // 保存服务器ID
                     ServerId = new FixedString64Bytes(tileData._id),
                     IsRequestSent = false
                 });
@@ -581,20 +566,17 @@ namespace GameFramework.ECS.Systems
             }
             else if (type == PlacementType.Island)
             {
-                // 使用回退逻辑获取资源名
                 var result = GetIslandConfigWithFallback(configId);
                 if (result.config != null) resourcePath = result.config.ResourceName;
             }
             else if (type == PlacementType.Bridge)
             {
-                // ... (桥梁逻辑保持不变)
                 var cfg = ConfigManager.Instance.Tables.TbBridgeConfig.GetOrDefault(configId);
                 resourcePath = cfg != null ? cfg.ResourceName : $"bridge_{configId}";
             }
 
             if (!string.IsNullOrEmpty(resourcePath))
             {
-                // ... (加载资源逻辑保持不变)
                 try
                 {
                     var prefab = await ResourceManager.Instance.LoadAssetAsync<GameObject>(resourcePath);
@@ -649,7 +631,6 @@ namespace GameFramework.ECS.Systems
                     return bCfg != null ? new int3(bCfg.Length, 1, bCfg.Width) : new int3(1, 1, 1);
 
                 case PlacementType.Island:
-                    // 使用回退逻辑
                     var result = GetIslandConfigWithFallback(objectId);
                     var iCfg = result.config;
                     return iCfg != null ? new int3(iCfg.Length, iCfg.Height, iCfg.Width) : new int3(1, 1, 1);
