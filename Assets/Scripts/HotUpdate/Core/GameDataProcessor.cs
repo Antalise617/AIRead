@@ -9,8 +9,10 @@ using GameFramework.Managers;
 using Cysharp.Threading.Tasks;
 using Unity.Collections;
 using System.Collections.Generic;
-using HotUpdate.UI; // 引用 UI 命名空间
+using HotUpdate.UI;
 using Game.HotUpdate;
+using GameFramework.Events;
+using GameFramework.Gameplay;
 
 namespace GameFramework.Core
 {
@@ -27,36 +29,40 @@ namespace GameFramework.Core
 
         private void Start()
         {
-            if (NetworkManager.Instance != null)
+            if (EventManager.Instance != null)
             {
                 // 订阅通用数据接收事件
-                NetworkManager.Instance.OnGameDataReceived += ProcessGameData;
+                EventManager.Instance.Subscribe<GameDataReceivedEvent>(ProcessGameData);
+            }
 
+            if (NetworkManager.Instance != null)
+            {
                 // 如果启动时已有缓存数据（通常是登录后的初始数据），立即处理
                 if (NetworkManager.Instance.CurrentGameData != null)
                 {
                     Debug.Log("[GameDataProcessor] 检测到初始缓存数据，开始加载...");
-                    ProcessGameData(NetworkManager.Instance.CurrentGameData);
+                    ProcessGameData(new GameDataReceivedEvent(NetworkManager.Instance.CurrentGameData));
                 }
             }
         }
 
         private void OnDestroy()
         {
-            if (NetworkManager.Instance != null)
+            if (EventManager.Instance != null)
             {
-                NetworkManager.Instance.OnGameDataReceived -= ProcessGameData;
+                EventManager.Instance.Unsubscribe<GameDataReceivedEvent>(ProcessGameData);
             }
         }
 
         // ========================================================================
         // [核心入口] 解析并分发数据
         // ========================================================================
-        private void ProcessGameData(GamesDTO data)
+        private void ProcessGameData(GameDataReceivedEvent evt)
         {
+            var data = evt.Data;
             if (data == null) return;
 
-            // 1. 分发玩家基础信息 (如体力、繁荣度)
+            // 1. 分发玩家基础信息
             if (data.Player != null && !string.IsNullOrEmpty(data.Player._id))
             {
                 ProcessPlayerInfo(data.Player);
@@ -69,7 +75,6 @@ namespace GameFramework.Core
             }
 
             // 3. 分发场景物体 (岛屿 & 建筑)
-            // 只有当包含 Tile 或 Building 数据时才触发场景刷新逻辑
             if ((data.Tile != null && data.Tile.Count > 0) || (data.Building != null && data.Building.Count > 0))
             {
                 ProcessWorldObjects(data).Forget();
@@ -80,12 +85,6 @@ namespace GameFramework.Core
             {
                 // SimpleQuestManager.Instance.UpdateQuests(data.Quest);
             }
-
-            // 5. (预留) 分发解锁数据
-            if (data.BuildingUnlock != null)
-            {
-                // UnlockManager.Instance.UpdateUnlock(data.BuildingUnlock);
-            }
         }
 
         // ========================================================================
@@ -94,16 +93,11 @@ namespace GameFramework.Core
 
         private void ProcessPlayerInfo(PlayerDTO player)
         {
-            // 更新本地玩家数据缓存
             Debug.Log($"[GameDataProcessor] 更新玩家信息: {player.name}, 繁荣度: {player.thriving}");
-
-            // TODO: 如果有 PlayerDataManager，在这里调用 Update
-            // 示例: PlayerDataManager.Instance.UpdateData(player);
         }
 
         private void ProcessItems(List<ItemDTO> items)
         {
-            // 更新全局背包
             if (GlobalInventoryManager.Instance != null)
             {
                 Debug.Log($"[GameDataProcessor] 同步背包数据: 更新 {items.Count} 个物品");
@@ -115,12 +109,11 @@ namespace GameFramework.Core
         private async UniTaskVoid ProcessWorldObjects(GamesDTO data)
         {
             // 判断是否是“初始加载”阶段
-            // 如果当前不在 Playing 状态 (比如在 MainMenu 或 Loading)，则视为初始加载
-            // 初始加载会触发：相机聚焦、状态切换、打开主UI
             bool isInitialLoad = (GameStateManager.Instance.CurrentState != GameState.Playing);
 
             var entityManager = World.DefaultGameObjectInjectionWorld.EntityManager;
             int3? firstIslandPos = null;
+            int3? targetFocusPos = null; // [新增] 用于存储需要聚焦的特定建筑位置
 
             // --- 阶段 A: 处理岛屿 (Tile) ---
             if (data.Tile != null)
@@ -129,7 +122,6 @@ namespace GameFramework.Core
 
                 foreach (var tile in data.Tile)
                 {
-                    // 创建生成请求 (ECS System 会自动处理去重或状态更新)
                     CreateIslandRequest(entityManager, tile);
 
                     if (firstIslandPos == null)
@@ -139,8 +131,6 @@ namespace GameFramework.Core
                 }
             }
 
-            // 等待一帧，确保岛屿请求被 ObjectSpawningSystem 捕获并注册网格
-            // 这样后续的建筑生成才能检测到合法的地面
             await UniTask.NextFrame();
 
             // --- 阶段 B: 处理建筑 (Building) ---
@@ -149,6 +139,15 @@ namespace GameFramework.Core
                 foreach (var build in data.Building)
                 {
                     CreateBuildingRequest(entityManager, build);
+
+                    // [新增逻辑] 寻找大类为1 (BuildType=1) 的建筑 (游客中心)
+                    // 我们记录它的位置，以便稍后聚焦相机
+                    if (build.BuildType == 1)
+                    {
+                        // Server(X, Y, Z_Height) -> Unity Grid(X, Y_Height, Z)
+                        targetFocusPos = new int3(build.posX, build.posZ, build.posY);
+                        Debug.Log($"[GameDataProcessor] 找到游客中心 (BuildType:1), 目标位置: {targetFocusPos}");
+                    }
                 }
             }
 
@@ -157,41 +156,51 @@ namespace GameFramework.Core
             // --- 阶段 C: 初始加载的收尾工作 ---
             if (isInitialLoad)
             {
-                // 1. 相机聚焦
-                if (firstIslandPos.HasValue) FocusCameraOnIsland(firstIslandPos.Value);
-                else FocusCameraOnIsland(int3.zero);
+                // 1. 相机聚焦逻辑优化
+                if (targetFocusPos.HasValue)
+                {
+                    // 优先聚焦到游客中心
+                    InitializeCamera(targetFocusPos.Value);
+                }
+                else if (firstIslandPos.HasValue)
+                {
+                    // 没找到游客中心，退化为聚焦第一个岛屿
+                    InitializeCamera(firstIslandPos.Value);
+                }
+                else
+                {
+                    // 什么都没有，聚焦零点
+                    InitializeCamera(int3.zero);
+                }
 
                 // 2. 切换游戏状态 & 打开主界面
                 if (GameStateManager.Instance != null)
                 {
                     GameStateManager.Instance.ChangeState(GameState.Playing);
-
-                    // 确保 MainPanel 显示
                     UIManager.Instance.ShowPanelAsync<UIPanel>("MainPanel", UILayer.Normal).Forget();
                 }
             }
         }
 
         // ========================================================================
-        // [辅助方法] 生成 ECS 请求 (保持原有逻辑)
+        // [辅助方法] 生成 ECS 请求
         // ========================================================================
 
-        private void FocusCameraOnIsland(int3 gridPos)
+        // 复用原有的聚焦方法 (传入 Grid 坐标，内部转换为世界坐标)
+        private void InitializeCamera(int3 gridPos)
         {
-            if (Camera.main == null) return;
+            var camController = FindObjectOfType<StrategyCameraController>();
+            if (camController == null) return;
 
-            float cellSize = 2.0f; // 需与 GridConfig 一致
-            float3 targetWorldPos = new float3(gridPos.x * cellSize, gridPos.y * cellSize, gridPos.z * cellSize);
-            targetWorldPos += new float3(10f, 0, 10f);
+            float cellSize = 2.0f; // 需与 Config 一致
+            Vector3 targetWorldPos = new Vector3(gridPos.x * cellSize, 0, gridPos.z * cellSize);
 
-            float3 cameraOffset = new float3(-30, 40, -30);
-            Camera.main.transform.position = targetWorldPos + cameraOffset;
-            Camera.main.transform.LookAt(targetWorldPos);
+            // 调用专门的初始化方法
+            camController.SetInitialView(targetWorldPos);
         }
 
         private void CreateIslandRequest(EntityManager em, TileDTO tile)
         {
-            // 优先尝试用 tile_id 查表，查不到则用 tile_type (101001) 查表
             var islandCfg = ConfigManager.Instance.Tables.TbIsland.GetOrDefault(tile.tile_id);
             int visualObjectId = tile.tile_id;
 
@@ -201,24 +210,17 @@ namespace GameFramework.Core
                 if (islandCfg != null) visualObjectId = tile.tile_type;
             }
 
-            // 兜底逻辑
             if (islandCfg == null && ConfigManager.Instance.Tables.TbIslandLevel.GetOrDefault(tile.tile_id) != null)
             {
                 islandCfg = ConfigManager.Instance.Tables.TbIsland.GetOrDefault(101001);
                 if (islandCfg != null) visualObjectId = 101001;
             }
 
-            if (islandCfg == null)
-            {
-                Debug.LogError($"[GameDataProcessor] 无法找到岛屿配置，跳过生成! ID:{tile.tile_id}");
-                return;
-            }
+            if (islandCfg == null) return;
 
             var requestEntity = em.CreateEntity();
-            // Server(X, Y, Z_Height) -> Unity(X, Y_Height, Z)
             int3 unityPos = new int3(tile.posX, tile.posZ, tile.posY);
 
-            // 1. 添加生成请求
             em.AddComponentData(requestEntity, new PlaceObjectRequest
             {
                 ObjectId = visualObjectId,
@@ -230,7 +232,6 @@ namespace GameFramework.Core
                 AirspaceHeight = islandCfg.AirHeight
             });
 
-            // 2. 添加状态机组件 (数据绑定)
             em.AddComponentData(requestEntity, new IslandStatusComponent
             {
                 State = tile.state,
@@ -253,7 +254,6 @@ namespace GameFramework.Core
 
             if (build.rotate % 2 != 0) { int t = length; length = width; width = t; }
 
-            // Server(X, Y, Z_Height) -> Unity(X, Y_Height, Z)
             int3 unityPos = new int3(build.posX, build.posZ, build.posY);
 
             em.AddComponentData(requestEntity, new PlaceObjectRequest

@@ -5,6 +5,7 @@ using UnityEngine;
 using UnityEngine.Networking;
 using Cysharp.Threading.Tasks;
 using Newtonsoft.Json; // 必须引用！用于序列化字典
+using GameFramework.Events;
 
 namespace GameFramework.Managers
 {
@@ -13,20 +14,16 @@ namespace GameFramework.Managers
         private const string LOGIN_SERVER_IP = "192.168.10.116";
         private const int LOGIN_SERVER_PORT = 8009;
 
+        private const int DEFAULT_SERVER_INDEX = 2;
+
         private string _currentIp = LOGIN_SERVER_IP;
         private int _currentPort = LOGIN_SERVER_PORT;
         private string _accessToken = "";
 
         public List<ServerDTO> CachedServerList { get; private set; } = new List<ServerDTO>();
         public GamesDTO CurrentGameData { get; private set; }
-
+        public ServerDTO CurrentSelectedServer { get; private set; }
         public bool IsConnected => !string.IsNullOrEmpty(_accessToken); // 简单判断
-
-        // ===================================================================================
-        // 2. 事件定义
-        // ===================================================================================
-        public event Action OnLoginSuccess;
-        public event Action<GamesDTO> OnGameDataReceived;
 
         // ===================================================================================
         // 3. 公开业务接口
@@ -40,6 +37,10 @@ namespace GameFramework.Managers
             SendLogin("1930616513", "lzhlzh617");
         }
 
+        /// <summary>
+        /// [修改] 切换当前服务器
+        /// 职责：更新本地状态 -> 切换底层IP -> 广播事件通知UI
+        /// </summary>
         public void SwitchServer(ServerDTO targetServer)
         {
             if (targetServer == null)
@@ -48,6 +49,8 @@ namespace GameFramework.Managers
                 return;
             }
 
+            // 1. 更新数据状态
+            CurrentSelectedServer = targetServer;
             _currentIp = targetServer.ip;
 
             if (int.TryParse(targetServer.port, out int port))
@@ -56,11 +59,35 @@ namespace GameFramework.Managers
             }
             else
             {
-                Debug.LogError($"[NetworkManager] 服务器端口解析失败: {targetServer.port}，将使用默认端口 80");
+                Debug.LogWarning($"[NetworkManager] 端口解析失败: {targetServer.port}，使用默认端口 80");
                 _currentPort = 80;
             }
 
-            Debug.Log($"[NetworkManager] ===> 已切换至服务器: {targetServer.name} ({_currentIp}:{_currentPort}) <===");
+            Debug.Log($"[NetworkManager] ===> 切换服务器: {targetServer.name} ({_currentIp}:{_currentPort}) <===");
+
+            // 2. [关键] 广播事件通知 UI 刷新
+            EventManager.Instance.Publish(new ServerSelectedEvent(targetServer));
+        }
+        /// <summary>
+        /// [新增] 进入游戏逻辑
+        /// UI 只需调用此方法，无需关心 URL 和 参数封装
+        /// </summary>
+        public void JoinGame()
+        {
+            if (CurrentSelectedServer == null)
+            {
+                Debug.LogError("[NetworkManager] 未选择服务器，无法进入游戏！");
+                return;
+            }
+
+            Debug.Log($"[NetworkManager] 请求进入服务器: {CurrentSelectedServer.name} (ID: {CurrentSelectedServer.server_id})");
+
+            // 封装请求参数
+            var requestData = new RequestData();
+            requestData.AddField("server_id", CurrentSelectedServer.server_id);
+
+            // 发送请求
+            SendGameRequest("/player/joinGame", requestData);
         }
         /// <summary>
         /// 发送登录请求
@@ -80,15 +107,30 @@ namespace GameFramework.Managers
 
             Debug.Log($"[NetworkManager] 发送登录请求至 {_currentIp}:{_currentPort}...");
 
-            // 登录通常返回 UserLoginResultDTO
+            // 发送登录请求等待返回数据
             var response = await PostAsync<UserLoginResultDTO>("/user/login", data, false);
-
             if (response != null && response.status == "success")
             {
                 _accessToken = response.result.access_token;
                 CachedServerList = response.result.server_list;
                 Debug.Log($"[NetworkManager] 登录成功，获取到 {CachedServerList.Count} 个服务器");
-                OnLoginSuccess?.Invoke();
+                // [核心修改] 登录成功后，立即执行默认选服逻辑
+                if (CachedServerList != null && CachedServerList.Count > 0)
+                {
+                    int targetIndex = DEFAULT_SERVER_INDEX;
+                    // 防越界保护
+                    if (targetIndex < 0 || targetIndex >= CachedServerList.Count)
+                    {
+                        targetIndex = 0;
+                    }
+
+                    Debug.Log($"[NetworkManager] 执行默认选服策略 (Index: {targetIndex})");
+                    // 调用 SwitchServer 会更新 CurrentSelectedServer 并广播 ServerSelectedEvent
+                    SwitchServer(CachedServerList[targetIndex]);
+                }
+
+                // 发布登录成功事件
+                EventManager.Instance.Publish(new LoginSuccessEvent());
             }
             else
             {
@@ -185,7 +227,7 @@ namespace GameFramework.Managers
             CurrentGameData = data;
 
             // 3. 广播事件
-            OnGameDataReceived?.Invoke(data);
+            EventManager.Instance.Publish(new GameDataReceivedEvent(data));
         }
 
         // ===================================================================================
